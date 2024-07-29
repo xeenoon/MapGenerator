@@ -201,8 +201,8 @@ namespace TerrainGenerator
             Rock result = new Rock();
             Random r = seed == -1 ? new Random() : new Random(seed); //Assign with seed if it is available, otherwise make it completely randmo
             //Generate some lakeish shape inside the bounds
-            int bumps = 2; //Lake by default is a circle, this changes the amount of bumps on the side of the lake
-            //bumps = r.Next(8,10);
+            //int bumps = 2; //Lake by default is a circle, this changes the amount of bumps on the side of the lake
+            int bumps = r.Next(8,10);
             List<Bump> bumpdegrees = new List<Bump>();
             for(int i = 0; i < bumps; i++)
             {

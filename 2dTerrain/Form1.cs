@@ -36,7 +36,7 @@ namespace _2dTerrain
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
-            var centre = new Point(200, 200);
+          /*  var centre = new Point(200, 200);
             Rock newrock = Rock.GenerateRock(centre);
             g.FillPolygon(new Pen(Color.Gray).Brush, newrock.bounds.ToArray());
             for(int i = 0; i < newrock.bounds.Count; ++i)
@@ -49,7 +49,7 @@ namespace _2dTerrain
 
 
             pictureBox.Invalidate();
-            return;
+            return;*/
 
             //Create a gridish style pattern of rocks
             Rock[,] rocks = new Rock[wallwidth, wallheight];
@@ -60,10 +60,12 @@ namespace _2dTerrain
                 {
                     Random r = new Random();
                     double scalingdifference = 2;
+                    var lakerect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble() / 2 + 0.5f)), (int)(brickheight * (r.NextDouble() / 2 + 0.5f))); //Create a rock at 0,0
+                    /*
                     var lakerect = new Rectangle(0, 0, 
                         (int)(brickwidth  * (r.NextDouble() / scalingdifference + ((scalingdifference-1) / scalingdifference))), 
                         (int)(brickheight * (r.NextDouble() / scalingdifference + ((scalingdifference-1) / scalingdifference)))); //Create a rock at 0,0
-
+                    */
                     Rock rock = Rock.GenerateRock(lakerect, 20);
 
                     rocks[x,y] = rock;
