@@ -9,10 +9,10 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace TerrainGenerator
 {
-    public class Lake
+    public class Rock
     {
         public List<Point> bounds = new List<Point>();
-        public Lake()
+        public Rock()
         {
 
         }
@@ -28,9 +28,9 @@ namespace TerrainGenerator
             }
         }
         const double MAX_BUMP_SIZE = 0.1; //Dont let a bump be more than 0.4x the 
-        public static Lake GenerateLake(Rectangle bounds, int points, int seed= -1)
+        public static Rock GenerateRock(Rectangle bounds, int points, int seed= -1)
         {
-            Lake result = new Lake();
+            Rock result = new Rock();
             Random r = seed == -1 ? new Random() : new Random(seed); //Assign with seed if it is available, otherwise make it completely randmo
             //Generate some lakeish shape inside the bounds
             int bumps = 1; //Lake by default is a circle, this changes the amount of bumps on the side of the lake
