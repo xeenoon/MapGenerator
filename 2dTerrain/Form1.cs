@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms.VisualStyles;
 using TerrainGenerator;
 
@@ -21,32 +22,22 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70); 
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += GenerateLake;
+            generateButton.Click += GenerateTiles;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
         }
-        public unsafe void GenerateLake(object sender, EventArgs e)
+        public unsafe void GenerateTiles(object sender, EventArgs e)
         {
-            const int wallwidth = 10;
-            const int wallheight = 10;
-            const int brickwidth = 200;
-            const int brickheight = 100;
+            const int wallwidth = 100;
+            const int wallheight = 100;
+            const int brickwidth = 20;
+            const int brickheight = 10;
+            const int rockdist = 1;
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
             //Create a gridish style pattern of rocks
             Lake[,] lakes = new Lake[wallwidth, wallheight];
-            var grouttexture = Image.FromFile(@"C:\Users\ccw10\Downloads\grout.jpg");
-            int imgwidth = grouttexture.Width;
-            int imgheight = grouttexture.Height;
-            for (int x = 0; x < 8; ++x)
-            {
-                for (int y = 0; y < 8; ++y)
-                {
-                    g.DrawImage(grouttexture, x*imgwidth, y*imgheight, imgwidth, imgheight);
-
-                }
-            }
             for (int y = 0; y < wallheight; ++y)
             {
                 int xoffset = 0;
@@ -55,12 +46,13 @@ namespace _2dTerrain
                     Random r = new Random();
                     var lakerect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble()/2 + 0.5f)), (int)(brickheight * (r.NextDouble() / 2 + 0.5f))); //Create a rock at 0,0
 
-                    Lake lake = Lake.GenerateLake(lakerect);
+                    Lake lake = Lake.GenerateLake(lakerect, 20);
+
                     lakes[x,y] = lake;
                     int yoffset = 0; //Statically offset at 50 to not overflow top
                     if (y >= 1) //Dont look at row above it already on top row
                     {
-                        yoffset = lakes[x, y-1].bounds.Max(p=>p.Y) + 10; //Find the lowest point on the rock above
+                        yoffset = lakes[x, y-1].bounds.Max(p=>p.Y) + rockdist; //Find the lowest point on the rock above
                         int furtheresttop = lake.bounds.Min(p => p.Y); //Find the highest point on our rock
                         yoffset -= furtheresttop; //Modify the offset to make sure we dont intersect
 
@@ -74,31 +66,16 @@ namespace _2dTerrain
                     }
 
                     //g.FillPolygon(new Pen(Color.DarkGray).Brush, lake.bounds.ToArray()); //Draw rock
-                    xoffset = 10 + lake.bounds.Max(p => p.X); //Make the xoffset for the next rock the furtherest right point on this rock
+                    xoffset = rockdist + lake.bounds.Max(p => p.X); //Make the xoffset for the next rock the furtherest right point on this rock
                     
-                    //g.DrawRectangle(new Pen(Color.Black), lakerect);
+                    g.DrawRectangle(new Pen(Color.Black), new Rectangle(xoffset - lakerect.Width, yoffset, lakerect.Width, lakerect.Height));
                 }
             }
 
-            Bitmap finalrocktexture = new Bitmap(result.Width,result.Height);
-            g = Graphics.FromImage(finalrocktexture);
-            var rocktexture = Image.FromFile(@"C:\Users\ccw10\Downloads\grout.jpg");
-            imgwidth = rocktexture.Width;
-            imgheight = rocktexture.Height;
-            for (int x = 0; x < 8; ++x)
-            {
-                for (int y = 0; y < 8; ++y)
-                {
-                    g.DrawImage(rocktexture, x * imgwidth, y * imgheight, imgwidth, imgheight);
-                }
-            } //Prep the image data that is about to be copied
-
             //Generate rock textures
-            var writebmpdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-            var readbmpdata = finalrocktexture.LockBits(new Rectangle(0, 0, finalrocktexture.Width, finalrocktexture.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            //var writebmpdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
 
-            byte* writeptr = (byte*)(writebmpdata.Scan0);
-            byte* readptr = (byte*)(readbmpdata.Scan0);
+            //byte* writeptr = (byte*)(writebmpdata.Scan0);
             /*
             for (int x = 0; x < result.Width; ++x)
             {
@@ -114,9 +91,10 @@ namespace _2dTerrain
                     }
                 }
             }*/
-            result.UnlockBits(writebmpdata);
-            finalrocktexture.UnlockBits(readbmpdata);
-            pictureBox.Image = result;
+            //result.UnlockBits(writebmpdata);
+
+            pictureBox.Invalidate();
+            //pictureBox.Image = result;
         }
         public bool PointInPolygon(int x, int y, Point[] polygon)
         {

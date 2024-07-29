@@ -28,7 +28,7 @@ namespace TerrainGenerator
             }
         }
         const double MAX_BUMP_SIZE = 0.1; //Dont let a bump be more than 0.4x the 
-        public static Lake GenerateLake(Rectangle bounds, int seed=-1)
+        public static Lake GenerateLake(Rectangle bounds, int points, int seed= -1)
         {
             Lake result = new Lake();
             Random r = seed == -1 ? new Random() : new Random(seed); //Assign with seed if it is available, otherwise make it completely randmo
@@ -43,7 +43,7 @@ namespace TerrainGenerator
                 bumpdegrees.Add(new Bump(r.NextDouble() * 360, radius));
             }
 
-            for(double i = 0; i < 360; i+=1)
+            for(double i = 0; i < 360; i+= (360/points))
             {
                 double angleInRadians = i * (Math.PI / 180.0);
 
