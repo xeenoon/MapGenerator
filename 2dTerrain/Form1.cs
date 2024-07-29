@@ -55,7 +55,7 @@ namespace _2dTerrain
             Rock[,] rocks = new Rock[wallwidth, wallheight];
             for (int y = 0; y < wallheight; ++y)
             {
-                int xoffset = 0;
+                int xoffset = y%2==0 ? 0 : brickwidth/2;
                 for (int x = 0; x < wallwidth; ++x)
                 {
                     Random r = new Random();
@@ -69,23 +69,72 @@ namespace _2dTerrain
                     Rock rock = Rock.GenerateRock(lakerect, 20);
 
                     rocks[x,y] = rock;
+
+                    int furtherestleft = rock.bounds.Min(p => p.X); //Find the furtherest left point on us
+                    xoffset -= furtherestleft; //Modify the offset to make sure we dont intersect
+                    for (int i = 0; i < rock.bounds.Count(); ++i)
+                    {
+                        var point = rock.bounds[i];
+                        rock.bounds[i] = new Point(point.X + xoffset, point.Y); //Apply offset
+                    }
+
+
                     int yoffset = 0;
-                    Point lowest_point_above_rock = new Point(0,0);
-                    Point top_point_m_rock = new Point(0,0);
+                    Point lowest_point_above_rock = new Point(0, 0);
+                    Point top_point_m_rock = new Point(0, 0);
                     if (y >= 1) //Dont look at row above it already on top row
                     {
+                        //Cast rays up from every point until we intersect
+                        List<Rock> rocksAbove = new List<Rock>();
+                        
+                        // Apply offset to the current rock's bounds
+                        for (int i = 0; i < rock.bounds.Count(); ++i)
+                        {
+                            var point = rock.bounds[i];
+                            rock.bounds[i] = new Point(point.X + xoffset); //TODO Duplicate code
+                        }
+
+                        // Check all rocks above the current rock
+                        for (int i = 0; i < rocks.GetLength(0); i++)
+                        {
+                            int j = y - 1;
+                            Rock aboveRock = rocks[i, j];
+
+                            if (aboveRock != null)
+                            {
+                                // Check each point in the current rock's bounds
+                                foreach (var point in rock.bounds)
+                                {
+                                    // Cast a ray upwards from this point
+                                    for (int i1 = 0; i1 < aboveRock.bounds.Count; i1++)
+                                    {
+                                        Point p0 = aboveRock.bounds[i1];
+                                        Point p1 = aboveRock.bounds[i1 == aboveRock.bounds.Count - 1 ? 0 : i1 + 1];
+
+                                        if (p0.X < point.X && p1.X > point.X ||
+                                            p1.X < point.X && p0.X < point.X)
+                                        {
+                                            rocksAbove.Add(aboveRock);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        int starty = y * brickheight; //Max possible
+
+
+
                         lowest_point_above_rock = rocks[x, y - 1].bounds.OrderByDescending(p => p.Y).FirstOrDefault();
                         yoffset = lowest_point_above_rock.Y + rockdist;
 
                         top_point_m_rock = rock.bounds.OrderBy(p => p.Y).FirstOrDefault();
                         int furtheresttop = top_point_m_rock.Y;
-                        yoffset -= furtheresttop; //Modify the offset to make sure we dont intersect
-                        
+                        yoffset -= furtheresttop; //Modify the offset to make sure we dont intersect   
                     }
 
-                    int furtherestleft = rock.bounds.Min(p => p.X); //Find the furtherest left point on us
-                    xoffset -= furtherestleft; //Modify the offset to make sure we dont intersect
-                    for(int i = 0; i < rock.bounds.Count(); ++i)
+                    for (int i = 0; i < rock.bounds.Count(); ++i)
                     {
                         var point = rock.bounds[i];
                         rock.bounds[i] = new Point(point.X + xoffset, point.Y + yoffset); //Apply offset
