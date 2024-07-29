@@ -28,13 +28,136 @@ namespace TerrainGenerator
             }
         }
         const double MAX_BUMP_SIZE = 0.1; //Dont let a bump be more than 0.4x the 
+
+        public static Rock GenerateRock(Point centre)
+        {
+            Random r = new Random();
+            Rock result = new Rock();
+            int points = 9;
+            for(double i = 0; i < 360; i+= 360.0/points)
+            {
+                double expectedangle = i * (Math.PI / 180.0);
+
+                int x = (int)((100) * Math.Cos(expectedangle));
+                int y = (int)((100) * Math.Sin(expectedangle));
+
+                Point expectedpoint = new Point(x + centre.X, y + centre.Y);
+                if (i == 0)
+                {
+                    result.bounds.Add(expectedpoint);
+                    continue;
+                }
+                
+                var lastangle = AngleBetween(result.bounds.Last(), expectedpoint);
+
+                lastangle *= (((r.NextDouble()-0.5) * 0.5)+1);
+                int offset_x = (int)((100) * Math.Cos(lastangle));
+                int offset_y = (int)((100) * Math.Sin(lastangle));
+
+                result.bounds.Add(new Point(result.bounds.Last().X + offset_x, result.bounds.Last().Y + offset_y));
+            }
+            return result;
+        }
+        public static Rock GenerateRock(Point[] basedoff, Point othercentre)
+        {
+            Random r = new Random();
+            Rock result = new Rock();
+            int points = 9;
+
+
+            if (basedoff.Count() != 3)
+            {
+                return result;
+            }
+
+            var toadd = new Point(basedoff[1].X - othercentre.X, basedoff[1].Y-othercentre.Y);
+            var centre = new Point(basedoff[1].X + toadd.X, basedoff[1].Y + toadd.Y);
+            foreach (var point in basedoff) //Given in the order we will draw
+            {
+                result.bounds.Add(point);
+            }
+
+            for (double i = AngleBetween(centre, result.bounds.Last()) * (Math.PI/180); i < 360; i += 360.0 / points)
+            {
+                double expectedangle = i * (Math.PI / 180.0);
+
+                int x = (int)((100) * Math.Cos(expectedangle));
+                int y = (int)((100) * Math.Sin(expectedangle));
+
+                Point expectedpoint = new Point(x + centre.X, y + centre.Y);
+                if (i == 0)
+                {
+                    result.bounds.Add(expectedpoint);
+                    continue;
+                }
+
+                var lastangle = AngleBetween(result.bounds.Last(), expectedpoint);
+
+                lastangle *= (((r.NextDouble() - 0.5) * 0.5) + 1);
+                int offset_x = (int)((100) * Math.Cos(lastangle));
+                int offset_y = (int)((100) * Math.Sin(lastangle));
+
+                result.bounds.Add(new Point(result.bounds.Last().X + offset_x, result.bounds.Last().Y + offset_y));
+            }
+            return result;
+        }
+
+        /*  public unsafe static Rock GenerateRock(int jointminsize, int jointmaxsize, Point location)
+          {
+              Rock result = new Rock();
+              int points = 12;
+              Point p0 = new Point(location.X, location.Y); //Avoid creating a reference
+              result.bounds.Add(p0);
+              Random rnd = new Random();
+              double anglesum = 0;
+              while (true)
+              {
+                  var last = result.bounds.Last();
+                  int distance = rnd.Next(jointminsize, jointmaxsize); //Generate a random length for a line
+
+                  double angle = (((rnd.NextDouble()) * Math.PI) / 2);
+
+                  //Find a random angle from (-0.2 to 0.8)*2pi radians
+                  //Divide this by points to see how many of these would need to be done for an entire rotation
+                  //E[f(x)] where f(x) is (-0.2 to 0.8) is 0.6
+                  //To on average get a full circle, multiply the angle by 1/E[f(x)]
+                  anglesum += angle;
+
+                  var next = new Point((int)(last.X + Math.Cos(angle) * distance), (int)(last.Y + Math.Sin(angle) * distance));
+
+
+                  double m_zeroangle = AngleBetween(p0, next);
+                  if (m_zeroangle > 180)
+                  {
+                      return result;
+                  }
+
+                  double l_zeroangle = AngleBetween(p0, last);
+                  if (m_zeroangle > l_zeroangle)
+                  {
+                      result.bounds.Add(next);
+                  }
+              }
+
+              return result;
+          }*/
+        static double AngleBetween(Point p1, Point p2)
+        {
+            // Calculate the difference in coordinates
+            double deltaX = p2.X - p1.X;
+            double deltaY = p2.Y - p1.Y;
+
+            // Calculate the angle in radians
+            return Math.Atan2(deltaY, deltaX);
+        }
+
         public static Rock GenerateRock(Rectangle bounds, int points, int seed= -1)
         {
             Rock result = new Rock();
             Random r = seed == -1 ? new Random() : new Random(seed); //Assign with seed if it is available, otherwise make it completely randmo
             //Generate some lakeish shape inside the bounds
-            int bumps = 1; //Lake by default is a circle, this changes the amount of bumps on the side of the lake
-            bumps = r.Next(8,10);
+            int bumps = 2; //Lake by default is a circle, this changes the amount of bumps on the side of the lake
+            //bumps = r.Next(8,10);
             List<Bump> bumpdegrees = new List<Bump>();
             for(int i = 0; i < bumps; i++)
             {

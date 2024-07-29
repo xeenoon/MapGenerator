@@ -36,8 +36,23 @@ namespace _2dTerrain
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
+            var centre = new Point(200, 200);
+            Rock newrock = Rock.GenerateRock(centre);
+            g.FillPolygon(new Pen(Color.Gray).Brush, newrock.bounds.ToArray());
+            for(int i = 0; i < newrock.bounds.Count; ++i)
+            {
+                var p = newrock.bounds[i];
+                g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(p.X-5, p.Y-5, 10,10));
+            }
+
+            g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(centre.X - 5, centre.Y - 5, 10, 10));
+
+
+            pictureBox.Invalidate();
+            return;
+
             //Create a gridish style pattern of rocks
-            Rock[,] lakes = new Rock[wallwidth, wallheight];
+            Rock[,] rocks = new Rock[wallwidth, wallheight];
             for (int y = 0; y < wallheight; ++y)
             {
                 int xoffset = 0;
@@ -49,37 +64,37 @@ namespace _2dTerrain
                         (int)(brickwidth  * (r.NextDouble() / scalingdifference + ((scalingdifference-1) / scalingdifference))), 
                         (int)(brickheight * (r.NextDouble() / scalingdifference + ((scalingdifference-1) / scalingdifference)))); //Create a rock at 0,0
 
-                    Rock lake = Rock.GenerateRock(lakerect, 50);
+                    Rock rock = Rock.GenerateRock(lakerect, 20);
 
-                    lakes[x,y] = lake;
+                    rocks[x,y] = rock;
                     int yoffset = 0;
                     Point lowest_point_above_rock = new Point(0,0);
                     Point top_point_m_rock = new Point(0,0);
                     if (y >= 1) //Dont look at row above it already on top row
                     {
-                        lowest_point_above_rock = lakes[x, y - 1].bounds.OrderByDescending(p => p.Y).FirstOrDefault();
+                        lowest_point_above_rock = rocks[x, y - 1].bounds.OrderByDescending(p => p.Y).FirstOrDefault();
                         yoffset = lowest_point_above_rock.Y + rockdist;
 
-                        top_point_m_rock = lake.bounds.OrderBy(p => p.Y).FirstOrDefault();
+                        top_point_m_rock = rock.bounds.OrderBy(p => p.Y).FirstOrDefault();
                         int furtheresttop = top_point_m_rock.Y;
                         yoffset -= furtheresttop; //Modify the offset to make sure we dont intersect
                         
                     }
 
-                    int furtherestleft = lake.bounds.Min(p => p.X); //Find the furtherest left point on us
+                    int furtherestleft = rock.bounds.Min(p => p.X); //Find the furtherest left point on us
                     xoffset -= furtherestleft; //Modify the offset to make sure we dont intersect
-                    for(int i = 0; i < lake.bounds.Count(); ++i)
+                    for(int i = 0; i < rock.bounds.Count(); ++i)
                     {
-                        var point = lake.bounds[i];
-                        lake.bounds[i] = new Point(point.X + xoffset, point.Y + yoffset); //Apply offset
+                        var point = rock.bounds[i];
+                        rock.bounds[i] = new Point(point.X + xoffset, point.Y + yoffset); //Apply offset
                     }
 
                     g.DrawLine(new Pen(Color.Red), lowest_point_above_rock, new Point(top_point_m_rock.X + xoffset, top_point_m_rock.Y + yoffset));
                     g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(lowest_point_above_rock.X - 5, lowest_point_above_rock.Y - 5, 10, 10));
                     g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(top_point_m_rock.X - 5 + xoffset, top_point_m_rock.Y - 5 + yoffset, 10, 10));
 
-                    g.FillPolygon(new Pen(Color.DarkGray).Brush, lake.bounds.ToArray()); //Draw rock
-                    xoffset = rockdist + lake.bounds.Max(p => p.X); //Make the xoffset for the next rock the furtherest right point on this rock
+                    g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
+                    xoffset = rockdist + rock.bounds.Max(p => p.X); //Make the xoffset for the next rock the furtherest right point on this rock
                     
                     //g.DrawRectangle(new Pen(Color.Black), new Rectangle(xoffset - lakerect.Width, yoffset, lakerect.Width, lakerect.Height));
                 }
