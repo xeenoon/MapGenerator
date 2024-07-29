@@ -34,7 +34,7 @@ namespace TerrainGenerator
             Random r = new Random();
             Rock result = new Rock();
             int points = 9;
-            for(double i = 0; i < 360; i+= 360.0/points)
+            for (double i = 0; i < 360; i += 360.0 / points)
             {
                 double expectedangle = i * (Math.PI / 180.0);
 
@@ -47,17 +47,62 @@ namespace TerrainGenerator
                     result.bounds.Add(expectedpoint);
                     continue;
                 }
-                
+
                 var lastangle = AngleBetween(result.bounds.Last(), expectedpoint);
 
-                lastangle *= (((r.NextDouble()-0.5) * 0.5)+1);
+                lastangle *= (((r.NextDouble() - 0.5) * 0.5) + 1);
                 int offset_x = (int)((100) * Math.Cos(lastangle));
                 int offset_y = (int)((100) * Math.Sin(lastangle));
 
                 result.bounds.Add(new Point(result.bounds.Last().X + offset_x, result.bounds.Last().Y + offset_y));
             }
+           // result.bounds = ConvexHull(result.bounds.ToArray()).ToList();
             return result;
         }
+        public static int Orientation(Point p, Point q, Point r)
+        {
+            int val = (q.Y - p.Y) * (r.X - q.X) - (q.X - p.X) * (r.Y - q.Y);
+            if (val == 0) return 0; // collinear
+            return (val > 0) ? 1 : -1; // clock or counterclock wise
+        }
+        public static Point[] ConvexHull(Point[] input)
+        {
+            if (input.Length < 3) return input;
+
+            List<Point> points = input.ToList();
+
+            Point p0 = points[0];
+            points.RemoveAt(0);
+
+            points.Sort((p1, p2) =>
+            {
+                int o = Orientation(p0, p1, p2);
+                if (o == 0)
+                    return (Distance(p0, p2).CompareTo(Distance(p0, p1)));
+                return (o == -1) ? -1 : 1;
+            });
+
+            Stack<Point> hull = new Stack<Point>();
+            hull.Push(p0);
+            hull.Push(points[0]);
+            hull.Push(points[1]);
+
+            for (int i = 2; i < points.Count; i++)
+            {
+                Point top = hull.Pop();
+                while (Orientation(hull.Peek(), top, points[i]) != -1)
+                    top = hull.Pop();
+                hull.Push(top);
+                hull.Push(points[i]);
+            }
+
+            return hull.ToArray();
+        }
+        private static double Distance(Point p1, Point p2)
+        {
+            return Math.Sqrt((p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y));
+        }
+
         public static Rock GenerateRock(Point[] basedoff, Point othercentre)
         {
             Random r = new Random();

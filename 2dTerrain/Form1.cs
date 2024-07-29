@@ -42,10 +42,10 @@ namespace _2dTerrain
             for(int i = 0; i < newrock.bounds.Count; ++i)
             {
                 var p = newrock.bounds[i];
-                g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(p.X-5, p.Y-5, 10,10));
+             //   g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(p.X-5, p.Y-5, 10,10));
             }
 
-            g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(centre.X - 5, centre.Y - 5, 10, 10));
+           // g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(centre.X - 5, centre.Y - 5, 10, 10));
 
 
             pictureBox.Invalidate();
