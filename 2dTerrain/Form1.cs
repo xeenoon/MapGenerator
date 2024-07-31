@@ -55,7 +55,7 @@ namespace _2dTerrain
             Rock[,] rocks = new Rock[wallwidth, wallheight];
             for (int y = 0; y < wallheight; ++y)
             {
-                int xoffset = y % 2==0 ? 0 : brickwidth/2;
+                int xoffset = y % 2 == 0 ? 0 : brickwidth / 2;
                 for (int x = 0; x < wallwidth; ++x)
                 {
                     Random r = new Random();
@@ -110,7 +110,7 @@ namespace _2dTerrain
                                         if ((p0.X < point.X && p1.X > point.X) ||
                                             (p1.X < point.X && p0.X > point.X))
                                         {
-                                            if(!rocksAbove.Contains(aboveRock))
+                                            if (!rocksAbove.Contains(aboveRock))
                                             {
                                                 rocksAbove.Add(aboveRock);
                                             }
@@ -131,17 +131,17 @@ namespace _2dTerrain
                             point = new Point(point.X, point.Y + starty);
 
                             //Check if casting upwards would intersect with the current rock, i.e. in the bottom half
-                             if(pointidx <= 10)
-                             {
+                            if (pointidx <= 10)
+                            {
                                 continue;
-                             }
+                            }
 
                             // Cast a ray upwards from this point
                             foreach (var aboveRock in rocksAbove)
                             {
                                 for (int i1 = 0; i1 < aboveRock.bounds.Count; i1++)
                                 {
-                                    if(i1 >= 10)
+                                    if (i1 >= 10)
                                     {
                                         continue;
                                     }
@@ -151,8 +151,8 @@ namespace _2dTerrain
                                     if (p0.X < point.X && p1.X > point.X ||
                                         p1.X < point.X && p0.X > point.X)
                                     {
-                                        var distance = (int)DistanceToLine(new Point(point.X, point.Y), new Line(p0,p1)).Y;
-                                        
+                                        var distance = (int)DistanceToLine(new Point(point.X, point.Y), new Line(p0, p1)).Y;
+
                                         //g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(point.X-5, point.Y-5, 10, 10));
                                         //g.DrawLine(new Pen(Color.Red), point, p0);                                        
                                         //g.DrawLine(new Pen(Color.Red), point, p1);
@@ -164,7 +164,7 @@ namespace _2dTerrain
                                 }
                             }
                         }
-                        int lowestdistance = distances.OrderBy(d=>d).FirstOrDefault();
+                        int lowestdistance = distances.OrderBy(d => d).FirstOrDefault();
                         //MessageBox.Show(lowestdistance.ToString());
                         starty -= lowestdistance;
                         starty += 10;
