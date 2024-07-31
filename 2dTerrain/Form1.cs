@@ -36,20 +36,14 @@ namespace _2dTerrain
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
-            /*  var centre = new Point(200, 200);
-              Rock newrock = Rock.GenerateRock(centre);
-              g.FillPolygon(new Pen(Color.Gray).Brush, newrock.bounds.ToArray());
-              for(int i = 0; i < newrock.bounds.Count; ++i)
-              {
-                  var p = newrock.bounds[i];
-               //   g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(p.X-5, p.Y-5, 10,10));
-              }
-
-             // g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(centre.X - 5, centre.Y - 5, 10, 10));
-
-
-              pictureBox.Invalidate();
-              return;*/
+            var grout = (Bitmap)Image.FromFile("C:\\Users\\ccw10\\Downloads\\graygrout.png");
+            for (int x = 0; x < Math.Ceiling((double)result.Width / grout.Width); ++x)
+            {
+                for (int y = 0; y < Math.Ceiling((double)result.Height / grout.Height); ++y)
+                {
+                    g.DrawImage(grout, new Point(x * grout.Width, y * grout.Height));
+                }
+            }
 
             //Create a gridish style pattern of rocks
             Rock[,] rocks = new Rock[wallwidth, wallheight];
@@ -60,13 +54,8 @@ namespace _2dTerrain
                 {
                     Random r = new Random();
                     double scalingdifference = 2;
-                    var lakerect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble() / 2 + 0.5f)), (int)(brickheight * (r.NextDouble() / 2 + 0.5f))); //Create a rock at 0,0
-                    /*
-                    var lakerect = new Rectangle(0, 0, 
-                        (int)(brickwidth  * (r.NextDouble() / scalingdifference + ((scalingdifference-1) / scalingdifference))), 
-                        (int)(brickheight * (r.NextDouble() / scalingdifference + ((scalingdifference-1) / scalingdifference)))); //Create a rock at 0,0
-                    */
-                    Rock rock = Rock.GenerateRock(lakerect, 20);
+                    var rockrect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble() / 2 + 0.5f)), (int)(brickheight * (r.NextDouble() / 2 + 0.5f))); //Create a rock at 0,0
+                    Rock rock = Rock.GenerateRock(rockrect, 20);
 
                     rocks[x, y] = rock;
 
@@ -79,8 +68,7 @@ namespace _2dTerrain
                         rock.bounds[i] = new Point(point.X + xoffset, point.Y); //Apply offset
                     }
                     xoffset += furtherestright; //Make the xoffset for the next rock the furtherest right point on this rock
-                    //Make sure to update after placing the rock
-
+                                                //Make sure to update after placing the rock
 
                     int yoffset = 0;
                     Point lowest_point_above_rock = new Point(0, 0);
@@ -131,7 +119,7 @@ namespace _2dTerrain
                             point = new Point(point.X, point.Y + starty);
 
                             //Check if casting upwards would intersect with the current rock, i.e. in the bottom half
-                            if (pointidx <= 10)
+                            if (pointidx <= rock.bounds.Count() / 2)
                             {
                                 continue;
                             }
@@ -141,7 +129,8 @@ namespace _2dTerrain
                             {
                                 for (int i1 = 0; i1 < aboveRock.bounds.Count; i1++)
                                 {
-                                    if (i1 >= 10)
+                                    //Remove the top half points for optimization
+                                    if (i1 >= aboveRock.bounds.Count() / 2)
                                     {
                                         continue;
                                     }
@@ -153,8 +142,10 @@ namespace _2dTerrain
                                     {
                                         var distance = (int)DistanceToLine(new Point(point.X, point.Y), new Line(p0, p1)).Y;
 
-                                        //g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(point.X-5, point.Y-5, 10, 10));
-                                        //g.DrawLine(new Pen(Color.Red), point, p0);                                        
+                                        //Visual debug
+
+                                        //g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(point.X - 5, point.Y - 5, 10, 10));
+                                        //g.DrawLine(new Pen(Color.Red), point, p0);
                                         //g.DrawLine(new Pen(Color.Red), point, p1);
                                         //g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(lowest_point_above_rock.X - 5, lowest_point_above_rock.Y - 5, 10, 10));
                                         //g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(top_point_m_rock.X - 5 + xoffset, top_point_m_rock.Y - 5 + yoffset, 10, 10));
@@ -176,10 +167,8 @@ namespace _2dTerrain
                         var point = rock.bounds[i];
                         rock.bounds[i] = new Point(point.X, point.Y + yoffset); //Apply offset
                     }
-
-                    g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
-
-                    //g.DrawRectangle(new Pen(Color.Black), new Rectangle(xoffset - lakerect.Width, yoffset, lakerect.Width, lakerect.Height));
+                    rock.Draw(result);
+                    //g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
                 }
             }
 
@@ -205,7 +194,6 @@ namespace _2dTerrain
             //result.UnlockBits(writebmpdata);
 
             pictureBox.Invalidate();
-            //pictureBox.Image = result;
         }
         public struct Line
         {
