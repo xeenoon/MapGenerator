@@ -1,4 +1,5 @@
 using System.Drawing.Imaging;
+using System.Security.Cryptography;
 
 namespace TerrainGenerator
 {
@@ -15,8 +16,7 @@ namespace TerrainGenerator
         }
         public void OverlayMoss(int density, int noisedepth)
         {
-            var noise = PerlinNoise.GenerateWhiteNoise(width, height);
-            var perlin = PerlinNoise.GeneratePerlinNoise(width, height, 4);
+            var perlin = PerlinNoise.GeneratePerlinNoise(width, height, noisedepth);
             var mossimage = (Bitmap)Image.FromFile("C:\\Users\\ccw10\\Downloads\\mossseam.png");
             BitmapData mossdata = mossimage.LockBits(new Rectangle(0,0,mossimage.Width,mossimage.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
             byte* moss_scan0 = (byte*)mossdata.Scan0;
@@ -25,14 +25,20 @@ namespace TerrainGenerator
                 for (int y = 0; y < height; y++)
                 {
                     //Apply moss based off of perlin noise
-                    double blendfactor = perlin[x][y];
-                    BlendColors(image+x*4 + y*height*4, moss_scan0 + ((x*4) % mossdata.Width) + ((y * mossdata.Stride) % mossdata.Width), blendfactor);
+                    double blendfactor = perlin[x][y]/density;
+                    BlendColors(image+x*4 + y*width*4, moss_scan0 + ((x%mossdata.Width) * 4) + ((y % mossdata.Height) * 4 * mossdata.Width), blendfactor);
                 }
             }
             mossimage.UnlockBits(mossdata);
         }
         public static void BlendColors(byte* from, byte* to, double blendfactor)
         {
+            /*
+            from[0] = (byte)(blendfactor*255);
+            from[1] = (byte)(blendfactor*255);
+            from[2] = (byte)(blendfactor*255);
+            return;*/
+
             //Start from the color 0 blend towards color 1
             int r_difference = to[2]-from[2];
             from[2] += (byte)(r_difference*blendfactor); //Blend factor of 0 will be original color, blend factor of 1 will e completely the next color

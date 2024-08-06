@@ -29,10 +29,10 @@ namespace _2dTerrain
         }
         public unsafe void GenerateTiles(object sender, EventArgs e)
         {
-            const int wallwidth = 10;
-            const int wallheight = 10;
-            const int brickwidth = 200;
-            const int brickheight = 200;
+            const int wallwidth = 40;
+            const int wallheight = 40;
+            const int brickwidth = 50;
+            const int brickheight = 50;
             const int rockdist = 2;
 
             result = new Bitmap(Width, Height);
@@ -179,7 +179,7 @@ namespace _2dTerrain
             //Draw the moss overlay
             var mossbitmapdata = result.LockBits(new Rectangle(0,0,result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Moss moss = new Moss(mossbitmapdata);
-            moss.OverlayMoss(1, 1);
+            moss.OverlayMoss(2, 7);
             result.UnlockBits(mossbitmapdata);
             pictureBox.Invalidate();
             s.Stop();
