@@ -33,7 +33,7 @@ namespace _2dTerrain
             const int wallheight = 40;
             const int brickwidth = 50;
             const int brickheight = 50;
-            const int rockdist = 10;
+            const int rockdist = 2;
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
