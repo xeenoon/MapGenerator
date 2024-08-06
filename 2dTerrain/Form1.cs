@@ -29,16 +29,16 @@ namespace _2dTerrain
         }
         public unsafe void GenerateTiles(object sender, EventArgs e)
         {
-            const int wallwidth = 40;
-            const int wallheight = 40;
-            const int brickwidth = 50;
-            const int brickheight = 50;
+            const int wallwidth = 10;
+            const int wallheight = 10;
+            const int brickwidth = 200;
+            const int brickheight = 200;
             const int rockdist = 2;
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
-            var grout = (Bitmap)Image.FromFile("C:\\Users\\ccw10\\Downloads\\graygrout.png");
-            int tilesize = 4;
+            var grout = (Bitmap)Image.FromFile("C:\\Users\\ccw10\\Downloads\\dirtseam.jpg");
+            int tilesize = 1;
             for (int x = 0; x < Math.Ceiling((double)result.Width / grout.Width) * tilesize; ++x)
             {
                 for (int y = 0; y < Math.Ceiling((double)result.Height / grout.Height) * tilesize; ++y)
@@ -176,27 +176,11 @@ namespace _2dTerrain
                 }
             }
 
-            //Generate rock textures
-            //var writebmpdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-
-            //byte* writeptr = (byte*)(writebmpdata.Scan0);
-            /*
-            for (int x = 0; x < result.Width; ++x)
-            {
-                for (int y = 0; y < result.Height; ++y)
-                {
-                    foreach (var lake in lakes)
-                    {
-                        if (PointInPolygon(x, y, lake.bounds.ToArray()))
-                        {
-                            int offset = x * 4 + y * writebmpdata.Stride;
-                            Buffer.MemoryCopy(readptr + offset, writeptr + offset, 4, 4);
-                        }
-                    }
-                }
-            }*/
-            //result.UnlockBits(writebmpdata);
-
+            //Draw the moss overlay
+            var mossbitmapdata = result.LockBits(new Rectangle(0,0,result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            Moss moss = new Moss(mossbitmapdata);
+            moss.OverlayMoss(1, 1);
+            result.UnlockBits(mossbitmapdata);
             pictureBox.Invalidate();
             s.Stop();
             MessageBox.Show("Total time: " + s.ElapsedMilliseconds.ToString());
