@@ -175,6 +175,8 @@ namespace _2dTerrain
                     //g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
                 }
             }
+            //Create the normal map
+            NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result), result);
 
             //Draw the moss overlay
             var mossbitmapdata = result.LockBits(new Rectangle(0,0,result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
