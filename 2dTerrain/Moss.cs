@@ -17,7 +17,9 @@ namespace TerrainGenerator
         public void OverlayMoss(int density, int noisedepth)
         {
             var perlin = PerlinNoise.GeneratePerlinNoise(width, height, noisedepth);
-            var mossimage = (Bitmap)Image.FromFile("C:\\Users\\ccw10\\Downloads\\mossseam.png");
+            string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            var mossimage = (Bitmap)Image.FromFile(exePath + "\\images\\mossseam.png");
             BitmapData mossdata = mossimage.LockBits(new Rectangle(0,0,mossimage.Width,mossimage.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
             byte* moss_scan0 = (byte*)mossdata.Scan0;
             for (int x = 0; x < width; x++)

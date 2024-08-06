@@ -119,7 +119,9 @@ namespace TerrainGenerator
             var resultbmp_scan0 = (byte*)resultbmp.Scan0;
 
             //Random random = new Random();
-            string filepath = "C:\\Users\\ccw10\\Downloads\\Rocks\\rock1.jpg";// + random.Next(1,7).ToString() + ".jpg";
+            string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            string filepath = exePath + "\\images\\rock.jpg";// + random.Next(1,7).ToString() + ".jpg";
 
             var rock = (Bitmap)Image.FromFile(filepath);
             var rockbmp = rock.LockBits(new Rectangle(0, 0, rock.Width, rock.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);

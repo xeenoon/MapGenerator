@@ -37,7 +37,9 @@ namespace _2dTerrain
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
-            var grout = (Bitmap)Image.FromFile("C:\\Users\\ccw10\\Downloads\\dirtseam.jpg");
+            string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            var grout = (Bitmap)Image.FromFile(exePath + "\\images\\dirtseam.jpg");
             int tilesize = 1;
             for (int x = 0; x < Math.Ceiling((double)result.Width / grout.Width) * tilesize; ++x)
             {
