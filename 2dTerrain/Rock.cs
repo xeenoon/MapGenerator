@@ -9,6 +9,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Timers;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace TerrainGenerator
 {
@@ -102,6 +103,8 @@ namespace TerrainGenerator
         {
             return Math.Sqrt(Math.Pow((Math.Sin(b_radians) - Math.Sin(angleInRadians)) * bounds.Height, 2) + Math.Pow((Math.Cos(b_radians) - Math.Cos(angleInRadians)) * bounds.Width, 2));
         }
+        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr memcpy(IntPtr dest, IntPtr src, UIntPtr count);
 
         public unsafe void Draw(Bitmap image)
         {
@@ -129,27 +132,39 @@ namespace TerrainGenerator
                     {
                         continue;
                     }
-                    if (resultbmp_scan0[x * 4 + y * resultbmp.Stride + 2] == 255) //Am I in the polygon?
+                    const int BYTES_PER_PIXEL = 4;
+                    if (resultbmp_scan0[x * BYTES_PER_PIXEL + y * resultbmp.Stride + 2] == 255) // Am I in the polygon?
                     {
-                        resultbmp_scan0[x * 4 + y * resultbmp.Stride] = rockbmp_scan0[(x % rock.Width) * 4 + (y % rock.Height) * rockbmp.Stride]; //Use % to allow texture to tile
-                        resultbmp_scan0[x * 4 + 1 + y * resultbmp.Stride] = rockbmp_scan0[(x % rock.Width) * 4 + (y % rock.Height) * rockbmp.Stride + 1];
-                        resultbmp_scan0[x * 4 + 2 + y * resultbmp.Stride] = rockbmp_scan0[(x % rock.Width) * 4 + (y % rock.Height) * rockbmp.Stride + 2];
-                        resultbmp_scan0[x * 4 + 3 + y * resultbmp.Stride] = rockbmp_scan0[(x % rock.Width) * 4 + (y % rock.Height) * rockbmp.Stride + 3] = 255; //memcpy optimization                        
+                        int resultIndex = x * BYTES_PER_PIXEL + y * resultbmp.Stride;
+                        int rockIndex = (x % rock.Width) * BYTES_PER_PIXEL + (y % rock.Height) * rockbmp.Stride;
+
+                        // Copy RGBA values from rockbmp_scan0 to resultbmp_scan0
+                        memcpy((IntPtr)(resultbmp_scan0 + resultIndex), (IntPtr)(rockbmp_scan0 + rockIndex), BYTES_PER_PIXEL);
+
+                        // Set alpha to 255
+                        resultbmp_scan0[resultIndex + 3] = 255;
                     }
+
                     var distance = DistanceFromPointToPolygon(new Point(x, y), bounds.ToArray());
                     if (distance <= shadowdst)
                     {
-                        byte b = resultbmp_scan0[x * 4 + y * resultbmp.Stride];
-                        byte g = resultbmp_scan0[x * 4 + 1 + y * resultbmp.Stride];
-                        byte r = resultbmp_scan0[x * 4 + 2 + y * resultbmp.Stride];
-                        byte a = resultbmp_scan0[x * 4 + 3 + y * resultbmp.Stride];
+                        int resultIndex = x * BYTES_PER_PIXEL + y * resultbmp.Stride;
+
+                        byte b = resultbmp_scan0[resultIndex];
+                        byte g = resultbmp_scan0[resultIndex + 1];
+                        byte r = resultbmp_scan0[resultIndex + 2];
 
                         const double shadowstrength = 3;
-                        resultbmp_scan0[x * 4 + y * resultbmp.Stride] = (byte)(b * (distance / (shadowdst * shadowstrength) + (1 - (1.0 / shadowstrength))));
-                        resultbmp_scan0[x * 4 + 1 + y * resultbmp.Stride] = (byte)(g * (distance / (shadowdst * shadowstrength) + (1 - (1.0 / shadowstrength))));
-                        resultbmp_scan0[x * 4 + 2 + y * resultbmp.Stride] = (byte)(r * (distance / (shadowdst * shadowstrength) + (1 - (1.0 / shadowstrength))));
-                        resultbmp_scan0[x * 4 + 3 + y * resultbmp.Stride] = 255; //memcpy optimization
+                        double shadowFactor = distance / (shadowdst * shadowstrength) + (1 - (1.0 / shadowstrength));
+
+                        resultbmp_scan0[resultIndex] = (byte)(b * shadowFactor);
+                        resultbmp_scan0[resultIndex + 1] = (byte)(g * shadowFactor);
+                        resultbmp_scan0[resultIndex + 2] = (byte)(r * shadowFactor);
+
+                        // Set alpha to 255
+                        resultbmp_scan0[resultIndex + 3] = 255;
                     }
+
                 }
             }
             image.UnlockBits(resultbmp);
