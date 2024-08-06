@@ -118,14 +118,17 @@ namespace TerrainGenerator
             var resultbmp = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             var resultbmp_scan0 = (byte*)resultbmp.Scan0;
 
-            var rock = (Bitmap)Image.FromFile("C:\\Users\\ccw10\\Downloads\\stoneseam.png");
+            //Random random = new Random();
+            string filepath = "C:\\Users\\ccw10\\Downloads\\Rocks\\rock1.jpg";// + random.Next(1,7).ToString() + ".jpg";
+
+            var rock = (Bitmap)Image.FromFile(filepath);
             var rockbmp = rock.LockBits(new Rectangle(0, 0, rock.Width, rock.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             var rockbmp_scan0 = (byte*)rockbmp.Scan0;
 
             const int shadowdst = 20;
             const int shinedst = 40;
             Point rockcentre = PolygonCentre(bounds.ToArray());
-
+            Filter filter = Filter.RandomFilter();
             for (int x = topleft.X - shadowdst; x < bottomright.X + shadowdst; ++x)
             {
                 for (int y = topleft.Y - shadowdst; y < bottomright.Y + shadowdst; ++y)
@@ -161,6 +164,7 @@ namespace TerrainGenerator
                             resultbmp_scan0[resultIndex + 1] = (byte)Math.Min(g * shadowFactor,255);
                             resultbmp_scan0[resultIndex + 2] = (byte)Math.Min(r * shadowFactor, 255);
                         }
+                        filter.ApplyFilter(resultbmp_scan0 + resultIndex);
                         // Set alpha to 255
                         resultbmp_scan0[resultIndex + 3] = 255;
                     }
