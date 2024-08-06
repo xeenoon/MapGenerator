@@ -186,9 +186,9 @@ namespace _2dTerrain
             //Draw the moss overlay
             var mossbitmapdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Moss moss = new Moss(mossbitmapdata);
-            moss.OverlayMoss(0.5, 7);
-
+            moss.OverlayMoss(0.35, 7);
             result.UnlockBits(mossbitmapdata);
+
             pictureBox.Invalidate();
             s.Stop();
             MessageBox.Show("Total time: " + s.ElapsedMilliseconds.ToString());
