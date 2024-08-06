@@ -65,7 +65,9 @@ namespace TerrainGenerator
             Bitmap normalMap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
 
             // Lock bits for both the input bitmap and the output normal map
-            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+            var blurredbitmap = ApplyGaussianBlur(bitmap, 0.5f);
+
+            BitmapData bitmapData = blurredbitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
             BitmapData normalMapData = normalMap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
 
             int stride = bitmapData.Stride;
@@ -120,10 +122,74 @@ namespace TerrainGenerator
 
 
             // Unlock the bits
-            bitmap.UnlockBits(bitmapData);
+            blurredbitmap.UnlockBits(bitmapData);
             normalMap.UnlockBits(normalMapData);
 
             return normalMap;
+        }
+        public static Bitmap ApplyGaussianBlur(Bitmap bitmap, float intensity)
+        {
+            int width = bitmap.Width;
+            int height = bitmap.Height;
+            Bitmap blurredBitmap = new Bitmap(width, height);
+
+            // Lock bits for the input bitmap and the output blurred bitmap
+            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+            BitmapData blurredBitmapData = blurredBitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+
+            int stride = bitmapData.Stride;
+            IntPtr bitmapPtr = bitmapData.Scan0;
+            IntPtr blurredBitmapPtr = blurredBitmapData.Scan0;
+
+            byte* bitmapPixels = (byte*)bitmapPtr;
+            byte* blurredPixels = (byte*)blurredBitmapPtr;
+
+            // Gaussian kernel (3x3)
+            float[,] kernel = {
+                { 1/16f, 2/16f, 1/16f },
+                { 2/16f, 4/16f, 2/16f },
+                { 1/16f, 2/16f, 1/16f }
+            }; //Sample more from the centre, less from the edges and even less from the corners
+            //Sum is 16 so all kernel values add up to 1
+            //Apply this percentage blur to all the nearby pixels nearby
+
+            for (int y = 1; y < height - 1; y++)
+            {
+                for (int x = 1; x < width - 1; x++)
+                {
+                    float blue = 0.0f, green = 0.0f, red = 0.0f;
+
+                    // Apply Gaussian blur kernel
+                    for (int ky = -1; ky <= 1; ky++)
+                    {
+                        for (int kx = -1; kx <= 1; kx++)
+                        {
+                            int pixelIndex = ((y + ky) * stride) + ((x + kx) * 3);
+                            blue += bitmapPixels[pixelIndex] * kernel[ky + 1, kx + 1];
+                            green += bitmapPixels[pixelIndex + 1] * kernel[ky + 1, kx + 1];
+                            red += bitmapPixels[pixelIndex + 2] * kernel[ky + 1, kx + 1];
+                        }
+                    }
+
+                    // Apply intensity
+                    blue = blue * intensity + bitmapPixels[y * stride + x * 3] * (1 - intensity);
+                    green = green * intensity + bitmapPixels[y * stride + x * 3 + 1] * (1 - intensity);
+                    red = red * intensity + bitmapPixels[y * stride + x * 3 + 2] * (1 - intensity);
+
+                    // Set the blurred pixel
+                    int index = y * stride + x * 3;
+                    blurredPixels[index] = (byte)blue;
+                    blurredPixels[index + 1] = (byte)green;
+                    blurredPixels[index + 2] = (byte)red;
+                }
+
+            }
+
+            // Unlock the bits
+            bitmap.UnlockBits(bitmapData);
+            blurredBitmap.UnlockBits(blurredBitmapData);
+
+            return blurredBitmap;
         }
     }
 }
