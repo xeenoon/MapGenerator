@@ -2,7 +2,7 @@ using System.Drawing.Imaging;
 
 namespace TerrainGenerator
 {
-    public class NormalMap
+    public unsafe class NormalMap
     {
         public NormalMap(Bitmap normalmap, Bitmap originalimage)
         {
@@ -11,7 +11,7 @@ namespace TerrainGenerator
         }
         public Bitmap normalmap;
         public Bitmap originalimage;
-        private unsafe void ApplyNormalMap()
+        public void ApplyNormalMap()
         {
             var originaldata = originalimage.LockBits(new Rectangle(0, 0, originalimage.Width, originalimage.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             var originalptr = (byte*)originaldata.Scan0;
@@ -58,7 +58,7 @@ namespace TerrainGenerator
             originalimage.UnlockBits(originaldata);
             normalmap.UnlockBits(normaldata);
         }
-        public static Bitmap GenerateNormalMap(Bitmap bitmap)
+        public static Bitmap GenerateNormalMap(Bitmap bitmap, float intensity)
         {
             int width = bitmap.Width;
             int height = bitmap.Height;
@@ -72,51 +72,52 @@ namespace TerrainGenerator
             IntPtr bitmapPtr = bitmapData.Scan0;
             IntPtr normalMapPtr = normalMapData.Scan0;
 
-            unsafe
+            byte* bitmapPixels = (byte*)bitmapPtr;
+            byte* normalMapPixels = (byte*)normalMapPtr;
+
+            for (int y = 1; y < height - 1; y++)
             {
-                byte* bitmapPixels = (byte*)bitmapPtr;
-                byte* normalMapPixels = (byte*)normalMapPtr;
-
-                for (int y = 1; y < height - 1; y++)
+                for (int x = 1; x < width - 1; x++)
                 {
-                    for (int x = 1; x < width - 1; x++)
-                    {
-                        // Calculate the index in the pixel array
-                        int index = y * stride + x * 3;
+                    // Calculate the index in the pixel array
+                    int index = y * stride + x * 3;
 
-                        // Get the color intensity of the surrounding pixels
-                        float tl = bitmapPixels[index - stride - 3];
-                        float t = bitmapPixels[index - stride];
-                        float tr = bitmapPixels[index - stride + 3];
-                        float l = bitmapPixels[index - 3];
-                        float r = bitmapPixels[index + 3];
-                        float bl = bitmapPixels[index + stride - 3];
-                        float b = bitmapPixels[index + stride];
-                        float br = bitmapPixels[index + stride + 3];
+                    // Get the color intensity of the surrounding pixels
+                    float tl = bitmapPixels[index - stride - 3];
+                    float t = bitmapPixels[index - stride];
+                    float tr = bitmapPixels[index - stride + 3];
+                    float l = bitmapPixels[index - 3];
+                    float r = bitmapPixels[index + 3];
+                    float bl = bitmapPixels[index + stride - 3];
+                    float b = bitmapPixels[index + stride];
+                    float br = bitmapPixels[index + stride + 3];
 
-                        // Calculate the gradients
-                        float dx = (tr + 2 * r + br) - (tl + 2 * l + bl);
-                        float dy = (bl + 2 * b + br) - (tl + 2 * t + tr);
+                    // Calculate the gradients
+                    float dx = (tr + 2 * r + br) - (tl + 2 * l + bl);
+                    float dy = (bl + 2 * b + br) - (tl + 2 * t + tr);
 
-                        // Calculate the normal vector
-                        float dz = 255.0f / 2.0f;
-                        float length = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
-                        float nx = dx / length;
-                        float ny = dy / length;
-                        float nz = dz / length;
+                    dx *= intensity;
+                    dy *= intensity;
 
-                        // Convert normal vector to color
-                        byte rNormal = (byte)((nx + 1) * 127.5f);
-                        byte gNormal = (byte)((ny + 1) * 127.5f);
-                        byte bNormal = (byte)((nz + 1) * 127.5f);
+                    // Calculate the normal vector
+                    float dz = 255.0f / 2.0f;
+                    float length = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                    float nx = dx / length;
+                    float ny = dy / length;
+                    float nz = dz / length;
 
-                        // Set the pixel in the normal map
-                        normalMapPixels[index] = bNormal;
-                        normalMapPixels[index + 1] = gNormal;
-                        normalMapPixels[index + 2] = rNormal;
-                    }
+                    // Convert normal vector to color
+                    byte rNormal = (byte)((nx + 1) * 127.5f);
+                    byte gNormal = (byte)((ny + 1) * 127.5f);
+                    byte bNormal = (byte)((nz + 1) * 127.5f);
+
+                    // Set the pixel in the normal map
+                    normalMapPixels[index] = bNormal;
+                    normalMapPixels[index + 1] = gNormal;
+                    normalMapPixels[index + 2] = rNormal;
                 }
             }
+
 
             // Unlock the bits
             bitmap.UnlockBits(bitmapData);

@@ -178,12 +178,14 @@ namespace _2dTerrain
                 }
             }
             //Create the normal map
-            NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result), result);
+            NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 1f), result);
+            normalMap.ApplyNormalMap();
 
             //Draw the moss overlay
-            var mossbitmapdata = result.LockBits(new Rectangle(0,0,result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var mossbitmapdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Moss moss = new Moss(mossbitmapdata);
             moss.OverlayMoss(2, 7);
+
             result.UnlockBits(mossbitmapdata);
             pictureBox.Invalidate();
             s.Stop();
