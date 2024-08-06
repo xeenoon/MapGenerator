@@ -29,20 +29,21 @@ namespace _2dTerrain
         }
         public unsafe void GenerateTiles(object sender, EventArgs e)
         {
-            const int wallwidth = 10;
-            const int wallheight = 10;
-            const int brickwidth = 200;
-            const int brickheight = 200;
+            const int wallwidth = 40;
+            const int wallheight = 40;
+            const int brickwidth = 50;
+            const int brickheight = 50;
             const int rockdist = 10;
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
             var grout = (Bitmap)Image.FromFile("C:\\Users\\ccw10\\Downloads\\graygrout.png");
-            for (int x = 0; x < Math.Ceiling((double)result.Width / grout.Width); ++x)
+            int tilesize = 4;
+            for (int x = 0; x < Math.Ceiling((double)result.Width / grout.Width) * tilesize; ++x)
             {
-                for (int y = 0; y < Math.Ceiling((double)result.Height / grout.Height); ++y)
+                for (int y = 0; y < Math.Ceiling((double)result.Height / grout.Height) * tilesize; ++y)
                 {
-                    g.DrawImage(grout, new Point(x * grout.Width, y * grout.Height));
+                    g.DrawImage(grout, new Point(x * grout.Width / tilesize, y * grout.Height / tilesize));
                 }
             }
 

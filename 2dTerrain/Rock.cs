@@ -123,6 +123,8 @@ namespace TerrainGenerator
             var rockbmp_scan0 = (byte*)rockbmp.Scan0;
 
             const int shadowdst = 20;
+            const int shinedst = 40;
+            Point rockcentre = PolygonCentre(bounds.ToArray());
 
             for (int x = topleft.X - shadowdst; x < bottomright.X + shadowdst; ++x)
             {
@@ -141,12 +143,30 @@ namespace TerrainGenerator
                         // Copy RGBA values from rockbmp_scan0 to resultbmp_scan0
                         memcpy((IntPtr)(resultbmp_scan0 + resultIndex), (IntPtr)(rockbmp_scan0 + rockIndex), BYTES_PER_PIXEL);
 
+                        double centredst = rockcentre.DistanceTo(new Point(x, y));
+                        if (centredst <= shinedst) //Lighten in centre
+                        {
+                            byte b = resultbmp_scan0[resultIndex];
+                            byte g = resultbmp_scan0[resultIndex + 1];
+                            byte r = resultbmp_scan0[resultIndex + 2];
+
+                            const double shinestrength = 4;
+                            //Should be equal to 1.5 where distance is 0
+                            //Should be equal to 1 where distance is shinedst
+                            //double shadowFactor = centredst/(double)shinedst;
+                            double shadowFactor = 1 + ((1.0/shinestrength) * (1 - (centredst / shinedst)));
+                            //double shadowFactor = centredst / (shadowdst * 3) + (1 - (1.0 / 3));
+                            
+                            resultbmp_scan0[resultIndex]     = (byte)Math.Min(b * shadowFactor, 255);
+                            resultbmp_scan0[resultIndex + 1] = (byte)Math.Min(g * shadowFactor,255);
+                            resultbmp_scan0[resultIndex + 2] = (byte)Math.Min(r * shadowFactor, 255);
+                        }
                         // Set alpha to 255
                         resultbmp_scan0[resultIndex + 3] = 255;
                     }
 
                     var distance = DistanceFromPointToPolygon(new Point(x, y), bounds.ToArray());
-                    if (distance <= shadowdst)
+                    if (distance <= shadowdst) //Darken on edges
                     {
                         int resultIndex = x * BYTES_PER_PIXEL + y * resultbmp.Stride;
 
@@ -164,11 +184,30 @@ namespace TerrainGenerator
                         // Set alpha to 255
                         resultbmp_scan0[resultIndex + 3] = 255;
                     }
-
                 }
             }
             image.UnlockBits(resultbmp);
             rock.UnlockBits(rockbmp);
+
+            //graphics.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(rockcentre.X - 5, rockcentre.Y - 5, 10, 10));
+
+        }
+        public static Point PolygonCentre(Point[] bounds)
+        {
+            float xSum = 0;
+            float ySum = 0;
+            int numPoints = bounds.Length;
+
+            for (int i = 0; i < numPoints; i++)
+            {
+                xSum += bounds[i].X;
+                ySum += bounds[i].Y;
+            }
+
+            float centerX = xSum / numPoints;
+            float centerY = ySum / numPoints;
+
+            return new Point((int)centerX, (int)centerY);
         }
 
         static double DistanceFromPointToPolygon(Point point, Point[] polygon)
