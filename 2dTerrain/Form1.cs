@@ -22,9 +22,26 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += GenerateTiles;
+            generateButton.Click += GenerateMapGrid;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
+        }
+        public void GenerateMapGrid(object sender, EventArgs e)
+        {
+            result = new Bitmap(Width, Height);
+            Graphics g = Graphics.FromImage(result);
+
+            Map map = new Map(50, 50);
+            map.GenerateMap();
+            for (int x = 0; x < map.width; ++x)
+            {
+                for (int y = 0; y < map.height; ++y)
+                {
+                    const int squaresize = 10;
+                    g.DrawRectangle(new Pen(Color.Red), new Rectangle(x*squaresize, y*squaresize, squaresize, squaresize));
+                }
+            }
+            pictureBox.Invalidate();
         }
         public unsafe void GenerateTiles(object sender, EventArgs e)
         {
