@@ -6,6 +6,9 @@ using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Timers;
+using System.Threading;
+using System.Diagnostics;
 
 namespace TerrainGenerator
 {
@@ -117,6 +120,7 @@ namespace TerrainGenerator
             var rockbmp_scan0 = (byte*)rockbmp.Scan0;
 
             const int shadowdst = 20;
+
             for (int x = topleft.X - shadowdst; x < bottomright.X + shadowdst; ++x)
             {
                 for (int y = topleft.Y - shadowdst; y < bottomright.Y + shadowdst; ++y)
@@ -148,7 +152,6 @@ namespace TerrainGenerator
                     }
                 }
             }
-
             image.UnlockBits(resultbmp);
             rock.UnlockBits(rockbmp);
         }

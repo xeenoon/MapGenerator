@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms.VisualStyles;
 using TerrainGenerator;
+using System.Diagnostics;
 
 namespace _2dTerrain
 {
@@ -47,6 +48,8 @@ namespace _2dTerrain
 
             //Create a gridish style pattern of rocks
             Rock[,] rocks = new Rock[wallwidth, wallheight];
+            Stopwatch s = new Stopwatch();
+            s.Start();
             for (int y = 0; y < wallheight; ++y)
             {
                 int xoffset = y % 2 == 0 ? 0 : brickwidth / 2;
@@ -194,6 +197,8 @@ namespace _2dTerrain
             //result.UnlockBits(writebmpdata);
 
             pictureBox.Invalidate();
+            s.Stop();
+            MessageBox.Show("Total time: " + s.ElapsedMilliseconds.ToString());
         }
         public struct Line
         {
