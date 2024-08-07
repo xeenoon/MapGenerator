@@ -26,7 +26,7 @@ namespace _2dTerrain
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
         }
-        public void GenerateMapGrid(object sender, EventArgs e)
+        public unsafe void GenerateMapGrid(object sender, EventArgs e)
         {
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
@@ -39,7 +39,7 @@ namespace _2dTerrain
                 {
                     const int squaresize = 10;
                     Color drawcolor = Color.AliceBlue;
-                    if (map.gridSquares[x, y].gridSquareType == GridSquare.GridSquareType.Floor)
+                    if (*map.GetGridSquare(x, y) == (int)GridSquareType.Floor)
                     {
                         drawcolor = Color.White;
                     }

@@ -1,14 +1,30 @@
-public class Map
+using System.Runtime.InteropServices;
+using Microsoft.VisualBasic;
+
+public unsafe class Map
 {
-    public GridSquare[,] gridSquares;
+    int* gridSquares;
     public int width;
     public int height;
     public Map(int width, int height)
     {
         this.width = width;
         this.height = height;
-        gridSquares = new GridSquare[width, height];
+        fixed (int* arry = new int[width * height * 4])
+        {
+            gridSquares = arry;
+        }
     }
+    public unsafe int* GetGridSquare(int x, int y)
+    {
+        if (x >= width || y >= height)
+        {
+            throw new IndexOutOfRangeException("x or y out of range for GetGridSquare");
+        }
+        return &gridSquares[x + y * width];
+    }
+    List<Room> rooms = new List<Room>();
+
     public void GenerateMap()
     {
         Random r = new Random();
@@ -18,7 +34,6 @@ public class Map
         //Rooms can be from 4x4 to 10x10
         int xlocation;
         int ylocation;
-        List<Room> rooms = new List<Room>();
         while (builtrooms < maxrooms)
         {
             int roomwidth = r.Next(4, 11);
@@ -38,7 +53,7 @@ public class Map
             {
                 for (int y = ylocation; y < ylocation + roomheight; ++y)
                 {
-                    gridSquares[x, y].gridSquareType = GridSquare.GridSquareType.Floor;
+                    GetGridSquare(x, y)[0] = (int)GridSquareType.Floor;
                 }
             }
         }
@@ -55,14 +70,23 @@ public class Map
             room.doors.Add(random_left_entrance);
             room.doors.Add(random_right_entrance);
 
-            for (int x = room.bounds.Left; x < room.bounds.Right; ++x)
+            foreach (var door in room.doors)
             {
-                for (int y = room.bounds.Top; y < room.bounds.Bottom; ++y)
-                {
-                    gridSquares[x, y] = new GridSquare(GridSquare.GridSquareType.Floor);
-                }
+                GenerateMazeFromPoint(door);
             }
         }
+    }
+    public void GenerateMazeFromPoint(Point p)
+    {
+        return;
+        while (true)
+        {
+
+        }
+    }
+    public void CanMove(int direction)
+    {
+
     }
     public static bool RectangleIntersects(Rectangle rectangle, List<Rectangle> rectangles)
     {
@@ -107,16 +131,8 @@ public class Room
         this.bounds = bounds;
     }
 }
-public struct GridSquare
+public enum GridSquareType
 {
-    public enum GridSquareType
-    {
-        Wall,
-        Floor,
-    }
-    public GridSquareType gridSquareType;
-    public GridSquare(GridSquareType gridSquareType)
-    {
-        this.gridSquareType = gridSquareType;
-    }
+    Wall = 0,
+    Floor = 1,
 }
