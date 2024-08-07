@@ -29,6 +29,12 @@ namespace _2dTerrain
         }
         public unsafe void GeneratePuddle(object sender, EventArgs e)
         {
+            const int wallwidth = 100;
+            const int wallheight = 100;
+            const int brickwidth = 25;
+            const int brickheight = 25;
+            const int rockdist = 2;
+
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
             string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -44,9 +50,143 @@ namespace _2dTerrain
             }
 
 
+            Rock[,] rocks = new Rock[wallwidth, wallheight];
+            var puddle = Puddle.GeneratePuddle(new Rectangle(400, 400, 400, 400), 360);
+
+            for (int y = 0; y < wallheight; ++y)
+            {
+                int xoffset = y % 2 == 0 ? 0 : brickwidth / 2;
+                for (int x = 0; x < wallwidth; ++x)
+                {
+                    Random r = new Random();
+                    double scalingdifference = 1.8;
+                    var rockrect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference))),
+                    (int)(brickheight * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference)))); //Create a rock at 0,0
+
+                    Rock rock = Rock.GenerateRock(rockrect, 20);
+
+                    rocks[x, y] = rock;
+
+                    int furtherestleft = rock.bounds.Min(p => p.X); //Find the furtherest left point on us
+                    xoffset -= furtherestleft; //Modify the offset to make sure we dont intersect
+                    int furtherestright = rock.bounds.Max(p => p.X);
+                    for (int i = 0; i < rock.bounds.Count(); ++i)
+                    {
+                        var point = rock.bounds[i];
+                        rock.bounds[i] = new Point(point.X + xoffset, point.Y); //Apply offset
+                    }
+                    xoffset += furtherestright; //Make the xoffset for the next rock the furtherest right point on this rock
+                                                //Make sure to update after placing the rock
+
+                    int yoffset = 0;
+                    Point lowest_point_above_rock = new Point(0, 0);
+                    Point top_point_m_rock = new Point(0, 0);
+                    if (y >= 1) //Dont look at row above it already on top row
+                    {
+                        //Cast rays up from every point until we intersect
+                        List<Rock> rocksAbove = new List<Rock>();
+
+                        // Check all rocks above the current rock
+                        for (int i = 0; i < wallwidth; i++)
+                        {
+                            int j = y - 1;
+                            Rock aboveRock = rocks[i, j];
+
+                            if (aboveRock != null)
+                            {
+                                // Check each point in the current rock's bounds
+                                foreach (var point in rock.bounds)
+                                {
+                                    // Cast a ray upwards from this point
+                                    for (int i1 = 0; i1 < aboveRock.bounds.Count; i1++)
+                                    {
+                                        Point p0 = aboveRock.bounds[i1];
+                                        Point p1 = aboveRock.bounds[i1 == aboveRock.bounds.Count - 1 ? 0 : i1 + 1];
+
+                                        if ((p0.X < point.X && p1.X > point.X) ||
+                                            (p1.X < point.X && p0.X > point.X))
+                                        {
+                                            if (!rocksAbove.Contains(aboveRock))
+                                            {
+                                                rocksAbove.Add(aboveRock);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Point lowestaboverocks = rocksAbove.SelectMany(r => r.bounds).ToList().OrderByDescending(p => p.Y).FirstOrDefault();
+                        Point highestmyrock = rock.bounds.OrderBy(p => p.Y).FirstOrDefault();
+                        int starty = lowestaboverocks.Y - highestmyrock.Y; //Find the points that the rocks would touch if the orientation was worst case possible
+                        List<int> distances = new List<int>();
+                        //Cast rays from every single point upwards and find how far away they are from the above rocks
+                        for (int pointidx = 0; pointidx < rock.bounds.Count(); ++pointidx)
+                        {
+                            var point = rock.bounds[pointidx];
+                            point = new Point(point.X, point.Y + starty);
+
+                            //Check if casting upwards would intersect with the current rock, i.e. in the bottom half
+                            if (pointidx <= rock.bounds.Count() / 2)
+                            {
+                                continue;
+                            }
+
+                            // Cast a ray upwards from this point
+                            foreach (var aboveRock in rocksAbove)
+                            {
+                                for (int i1 = 0; i1 < aboveRock.bounds.Count; i1++)
+                                {
+                                    //Remove the top half points for optimization
+                                    if (i1 >= aboveRock.bounds.Count() / 2)
+                                    {
+                                        continue;
+                                    }
+                                    Point p0 = aboveRock.bounds[i1];
+                                    Point p1 = aboveRock.bounds[i1 == aboveRock.bounds.Count - 1 ? 0 : i1 + 1];
+
+                                    if (p0.X < point.X && p1.X > point.X ||
+                                        p1.X < point.X && p0.X > point.X)
+                                    {
+                                        var distance = (int)DistanceToLine(new Point(point.X, point.Y), new Line(p0, p1)).Y;
+
+                                        //Visual debug
+
+                                        //g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(point.X - 5, point.Y - 5, 10, 10));
+                                        //g.DrawLine(new Pen(Color.Red), point, p0);
+                                        //g.DrawLine(new Pen(Color.Red), point, p1);
+                                        //g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(lowest_point_above_rock.X - 5, lowest_point_above_rock.Y - 5, 10, 10));
+                                        //g.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(top_point_m_rock.X - 5 + xoffset, top_point_m_rock.Y - 5 + yoffset, 10, 10));
+
+                                        distances.Add(distance);
+                                    }
+                                }
+                            }
+                        }
+                        int lowestdistance = distances.OrderBy(d => d).FirstOrDefault();
+                        //MessageBox.Show(lowestdistance.ToString());
+                        starty -= lowestdistance;
+                        starty += 10;
+                        yoffset = starty;
+                    }
+
+                    for (int i = 0; i < rock.bounds.Count(); ++i)
+                    {
+                        var point = rock.bounds[i];
+                        rock.bounds[i] = new Point(point.X, point.Y + yoffset); //Apply offset
+                    }
+                    if (rock.bounds.ToArray().Intersects(puddle.bounds.ToArray()))
+                    {
+                        continue;
+                    }
+                    rock.Draw(result);
+                    //g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
+                }
+            }
+
+
             //Draw the moss overlay
             var mossbitmapdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            var puddle = Puddle.GeneratePuddle(new Rectangle(400, 400, 400, 400), 360);
             Moss moss = new Moss(mossbitmapdata);
             moss.OverlayMoss(0.35, 7);
             result.UnlockBits(mossbitmapdata);

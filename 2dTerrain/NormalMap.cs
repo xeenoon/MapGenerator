@@ -198,7 +198,7 @@ namespace TerrainGenerator
                     normalMapPixels[index + 2] = rNormal;
                     if (markptr[x * 4 + y * 4 * bitmap.Width + 2] == 255) // Am I in the polygon?
                     {
-                        const byte recessedval = 175;
+                        const byte recessedval = 225;
                         const double blenddst = 200;
                         var distance = polygon.DistanceFromPointToPolygon(new Point(x, y));
                         if (distance <= blenddst) //Blend on edges

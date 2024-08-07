@@ -1,3 +1,5 @@
+using System.Data;
+
 namespace TerrainGenerator
 {
     public static class Extensions
@@ -104,6 +106,29 @@ namespace TerrainGenerator
             }
 
             return inside;
+        }
+
+        public static bool Intersects(this Point[] polygon1, Point[] polygon2) //This is genuinely the most inefficient function i have seen in my entire life
+        {
+            // Check if any vertex of polygon1 is inside polygon2
+            foreach (var p in polygon1)
+            {
+                if (polygon2.PointInPolygon(p))
+                {
+                    return true;
+                }
+            }
+
+            // Check if any vertex of polygon2 is inside polygon1
+            foreach (var q in polygon2)
+            {
+                if (polygon1.PointInPolygon(q))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
