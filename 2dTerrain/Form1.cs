@@ -38,7 +38,16 @@ namespace _2dTerrain
                 for (int y = 0; y < map.height; ++y)
                 {
                     const int squaresize = 10;
-                    g.DrawRectangle(new Pen(Color.Red), new Rectangle(x*squaresize, y*squaresize, squaresize, squaresize));
+                    Color drawcolor = Color.AliceBlue;
+                    if (map.gridSquares[x, y].gridSquareType == GridSquare.GridSquareType.Floor)
+                    {
+                        drawcolor = Color.White;
+                    }
+                    else
+                    {
+                        drawcolor = Color.Black;
+                    }
+                    g.FillRectangle(new Pen(drawcolor).Brush, new Rectangle(x * squaresize, y * squaresize, squaresize, squaresize));
                 }
             }
             pictureBox.Invalidate();

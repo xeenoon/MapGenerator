@@ -19,15 +19,15 @@ public class Map
         int xlocation;
         int ylocation;
         List<Room> rooms = new List<Room>();
-        while(builtrooms < maxrooms)
+        while (builtrooms < maxrooms)
         {
             int roomwidth = r.Next(4, 11);
             int roomheight = r.Next(4, 11);
             xlocation = r.Next(0, width - roomwidth);
             ylocation = r.Next(0, height - roomheight);
             //Check if we intersect with any other rooms
-            Room room = new Room(new Rectangle(xlocation, ylocation,roomwidth, roomheight));
-            if(RectangleIntersects(room.bounds, rooms.Select(r=>r.bounds).ToList()))
+            Room room = new Room(new Rectangle(xlocation, ylocation, roomwidth, roomheight));
+            if (RectangleIntersects(room.bounds, rooms.Select(r => r.bounds).ToList()))
             {
                 continue; //Dont have overlapping rooms
             }
@@ -38,59 +38,52 @@ public class Map
             {
                 for (int y = ylocation; y < ylocation + roomheight; ++y)
                 {
-                    gridSquares[x,y].gridSquareType = GridSquare.GridSquareType.Floor;
+                    gridSquares[x, y].gridSquareType = GridSquare.GridSquareType.Floor;
                 }
             }
         }
         //Connect rooms via hallways
         //Assign doorways to each of the rooms, disallow any other entrances
-        foreach(var room in rooms)
+        foreach (var room in rooms)
         {
-            Point random_top_entrance     = new Point(room.bounds.X + r.Next(0, room.bounds.Width), room.bounds.Y);
-            Point random_bottom_entrance  = new Point(room.bounds.X + r.Next(0, room.bounds.Width), room.bounds.Y + room.bounds.Height);
-            Point random_left_entrance    = new Point(room.bounds.X, room.bounds.Y + r.Next(0, room.bounds.Height));
-            Point random_right_entrance   = new Point(room.bounds.X + room.bounds.Width, room.bounds.Y + r.Next(0, room.bounds.Height));
+            Point random_top_entrance = new Point(room.bounds.X + r.Next(0, room.bounds.Width), room.bounds.Y);
+            Point random_bottom_entrance = new Point(room.bounds.X + r.Next(0, room.bounds.Width), room.bounds.Y + room.bounds.Height);
+            Point random_left_entrance = new Point(room.bounds.X, room.bounds.Y + r.Next(0, room.bounds.Height));
+            Point random_right_entrance = new Point(room.bounds.X + room.bounds.Width, room.bounds.Y + r.Next(0, room.bounds.Height));
             room.doors.Add(random_top_entrance);
             room.doors.Add(random_bottom_entrance);
             room.doors.Add(random_left_entrance);
             room.doors.Add(random_right_entrance);
-        }
-        //Generate maze from each door
-        //Start at room[0] door[0]
-        Point startlocation = rooms[0].doors[0];
-        while(true)
-        {
-            bool canmoveup = gridSquares[startlocation.X, startlocation.Y-1].gridSquareType == GridSquare.GridSquareType.Wall; 
-        }
 
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
+            for (int x = room.bounds.Left; x < room.bounds.Right; ++x)
             {
-                gridSquares[x, y] = new GridSquare((GridSquare.GridSquareType)r.Next(0, 2));
+                for (int y = room.bounds.Top; y < room.bounds.Bottom; ++y)
+                {
+                    gridSquares[x, y] = new GridSquare(GridSquare.GridSquareType.Floor);
+                }
             }
         }
     }
     public static bool RectangleIntersects(Rectangle rectangle, List<Rectangle> rectangles)
     {
-        foreach(var r in rectangles)
+        foreach (var r in rectangles)
         {
             //Check for all corners in my rectangle and see if they are inside the other rectangle
-            if(PointInRectangle(new Point(rectangle.X, rectangle.Y), r)) //Top left corner
+            if (PointInRectangle(new Point(rectangle.X, rectangle.Y), r)) //Top left corner
             {
-                return true; 
+                return true;
             }
-            if(PointInRectangle(new Point(rectangle.X + rectangle.Width, rectangle.Y), r)) //Top left corner
+            if (PointInRectangle(new Point(rectangle.X + rectangle.Width, rectangle.Y), r)) //Top left corner
             {
-                return true; 
+                return true;
             }
-            if(PointInRectangle(new Point(rectangle.X, rectangle.Y + rectangle.Height), r)) //Top left corner
+            if (PointInRectangle(new Point(rectangle.X, rectangle.Y + rectangle.Height), r)) //Top left corner
             {
-                return true; 
+                return true;
             }
-            if(PointInRectangle(new Point(rectangle.X + rectangle.Width, rectangle.Y + rectangle.Height), r)) //Top left corner
+            if (PointInRectangle(new Point(rectangle.X + rectangle.Width, rectangle.Y + rectangle.Height), r)) //Top left corner
             {
-                return true; 
+                return true;
             }
         }
         //Nothing intersected?
@@ -98,7 +91,7 @@ public class Map
     }
     public static bool PointInRectangle(Point p, Rectangle r) //Also checks if point is on edge
     {
-        if(p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height)
+        if (p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height)
         {
             return true;
         }
@@ -114,7 +107,7 @@ public class Room
         this.bounds = bounds;
     }
 }
-public class GridSquare
+public struct GridSquare
 {
     public enum GridSquareType
     {
