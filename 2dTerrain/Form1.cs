@@ -23,9 +23,41 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += GenerateTiles;
+            generateButton.Click += GeneratePuddle;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
+        }
+        public unsafe void GeneratePuddle(object sender, EventArgs e)
+        {
+            result = new Bitmap(Width, Height);
+            Graphics g = Graphics.FromImage(result);
+            string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            var grout = (Bitmap)Image.FromFile(exePath + "\\images\\dirtseam.jpg");
+            int tilesize = 1;
+            for (int x = 0; x < Math.Ceiling((double)result.Width / grout.Width) * tilesize; ++x)
+            {
+                for (int y = 0; y < Math.Ceiling((double)result.Height / grout.Height) * tilesize; ++y)
+                {
+                    g.DrawImage(grout, new Point(x * grout.Width / tilesize, y * grout.Height / tilesize));
+                }
+            }
+
+
+            //Draw the moss overlay
+            var mossbitmapdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var puddle = Puddle.GeneratePuddle(new Rectangle(400, 400, 400, 400), 360);
+            Moss moss = new Moss(mossbitmapdata);
+            moss.OverlayMoss(0.35, 7);
+            result.UnlockBits(mossbitmapdata);
+
+            puddle.DrawPuddle(result);
+
+            NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 0.5f, puddle.bounds.ToArray()), result);
+            normalMap.ApplyNormalMap();
+
+            //g.FillPolygon(new Pen(Color.Black).Brush, puddle.bounds.ToArray());
+            pictureBox.Invalidate();
         }
         public unsafe void GenerateTiles(object sender, EventArgs e)
         {

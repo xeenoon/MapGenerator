@@ -1,3 +1,4 @@
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 
 namespace TerrainGenerator
@@ -120,6 +121,107 @@ namespace TerrainGenerator
                 }
             }
 
+
+            // Unlock the bits
+            blurredbitmap.UnlockBits(bitmapData);
+            normalMap.UnlockBits(normalMapData);
+
+            return normalMap;
+        }
+        public static Bitmap GenerateNormalMap(Bitmap bitmap, float intensity, Point[] polygon)
+        {
+
+            Bitmap polygonmarker = new Bitmap(bitmap.Width, bitmap.Height);
+            Graphics graphics = Graphics.FromImage(polygonmarker);
+            graphics.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, polygon); //Mark the pixel
+
+            var markdata = polygonmarker.LockBits(new Rectangle(0, 0, polygonmarker.Width, polygonmarker.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            var markptr = (byte*)markdata.Scan0;
+
+            int width = bitmap.Width;
+            int height = bitmap.Height;
+            Bitmap normalMap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+
+            // Lock bits for both the input bitmap and the output normal map
+            var blurredbitmap = ApplyGaussianBlur(bitmap, 0.5f);
+
+            BitmapData bitmapData = blurredbitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+            BitmapData normalMapData = normalMap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+
+            int stride = bitmapData.Stride;
+            IntPtr bitmapPtr = bitmapData.Scan0;
+            IntPtr normalMapPtr = normalMapData.Scan0;
+
+            byte* bitmapPixels = (byte*)bitmapPtr;
+            byte* normalMapPixels = (byte*)normalMapPtr;
+
+            for (int y = 1; y < height - 1; y++)
+            {
+                for (int x = 1; x < width - 1; x++)
+                {
+
+                    // Calculate the index in the pixel array
+                    int index = y * stride + x * 3;
+
+                    // Get the color intensity of the surrounding pixels
+                    float tl = bitmapPixels[index - stride - 3];
+                    float t = bitmapPixels[index - stride];
+                    float tr = bitmapPixels[index - stride + 3];
+                    float l = bitmapPixels[index - 3];
+                    float r = bitmapPixels[index + 3];
+                    float bl = bitmapPixels[index + stride - 3];
+                    float b = bitmapPixels[index + stride];
+                    float br = bitmapPixels[index + stride + 3];
+
+                    // Calculate the gradients
+                    float dx = (tr + 2 * r + br) - (tl + 2 * l + bl);
+                    float dy = (bl + 2 * b + br) - (tl + 2 * t + tr);
+
+                    dx *= intensity;
+                    dy *= intensity;
+
+                    // Calculate the normal vector
+                    float dz = 255.0f / 2.0f;
+                    float length = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                    float nx = dx / length;
+                    float ny = dy / length;
+                    float nz = dz / length;
+
+                    // Convert normal vector to color
+                    byte rNormal = (byte)((nx + 1) * 127.5f);
+                    byte gNormal = (byte)((ny + 1) * 127.5f);
+                    byte bNormal = (byte)((nz + 1) * 127.5f);
+
+                    // Set the pixel in the normal map
+                    normalMapPixels[index] = bNormal;
+                    normalMapPixels[index + 1] = gNormal;
+                    normalMapPixels[index + 2] = rNormal;
+                    if (markptr[x * 4 + y * 4 * bitmap.Width + 2] == 255) // Am I in the polygon?
+                    {
+                        const byte recessedval = 175;
+                        const double blenddst = 200;
+                        var distance = polygon.DistanceFromPointToPolygon(new Point(x, y));
+                        if (distance <= blenddst) //Blend on edges
+                        {
+                            double blendfactor = Math.Min(distance / blenddst, 1);
+
+                            byte[] normalArray = { recessedval, recessedval, recessedval };
+                            fixed (byte* newnormals = normalArray)
+                            {
+                                Extensions.BlendColors(normalMapPixels + index, newnormals, blendfactor);
+                            }
+
+                        }
+                        else
+                        {
+                            // Set the normal vector to a recessed value (e.g., pointing inward)
+                            normalMapPixels[index] = recessedval; // Arbitrary recessed value for blue
+                            normalMapPixels[index + 1] = recessedval; // Arbitrary recessed value for green
+                            normalMapPixels[index + 2] = recessedval;   // Arbitrary recessed value for red
+                        }
+                    }
+                }
+            }
 
             // Unlock the bits
             blurredbitmap.UnlockBits(bitmapData);
