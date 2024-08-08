@@ -6,6 +6,14 @@ namespace TerrainGenerator
     public class Puddle
     {
         public List<Point> bounds = new List<Point>();
+        public Rectangle rect_bounds;
+
+        public List<Point> outer_bounds = new List<Point>();
+        public List<Point> inner_bounds = new List<Point>();
+        public Bitmap bakeddistances;
+        public BitmapData bakeddistances_data;
+
+        public Rectangle bakedrectangle;
         public Puddle()
         {
 
@@ -67,8 +75,35 @@ namespace TerrainGenerator
                     }
                 }
 
+
                 result.bounds.Add(new Point((int)x + bounds.X + bounds.Width / 2, (int)y + bounds.Y + bounds.Height / 2)); //Adjust the points from relative to cartesian (0,0) to the box
             }
+            int left = result.bounds.Min(p => p.X);
+            int top = result.bounds.Min(p => p.Y);
+            int width = result.bounds.Max(p => p.X) - left;
+            int height = result.bounds.Max(p => p.Y) - top;
+            result.rect_bounds = new Rectangle(left, top, width, height);
+
+
+            result.bakeddistances = new Bitmap(result.rect_bounds.Width + max_blenddst * 2, result.rect_bounds.Height + max_blenddst * 2);
+            result.bakedrectangle = new Rectangle(left - max_blenddst, top - max_blenddst, result.bakeddistances.Width, result.bakeddistances.Height);
+
+            Graphics g = Graphics.FromImage(result.bakeddistances);
+            List<Point[]> blendareas = new List<Point[]>();
+            g.FillPolygon(new Pen(Color.FromArgb(255, 255, 255, 255)).Brush, result.bounds.ToArray().ScalePolygon(blenddst, new Point(-left + max_blenddst, -top + max_blenddst)));
+
+            for (int scale = -blenddst; scale < blenddst; ++scale) //Draw from blenddst to -blenddst
+            {
+                //int scale = (2 * blenddst) - (i - blenddst);
+                int distance = Math.Abs(scale);
+
+                Color todraw = Color.FromArgb(255, distance, distance, distance); //Cache distance values in a bitmap
+                g.FillPolygon(new Pen(todraw).Brush, result.bounds.ToArray().ScalePolygon(-scale, new Point(-left + max_blenddst, -top + max_blenddst)));
+            }
+            //g.FillPolygon(new Pen(Color.FromArgb(255, 255, 255, 255)).Brush, result.bounds.ToArray().ScalePolygon(-blenddst, new Point(-left + max_blenddst, -top + max_blenddst)));
+
+            result.bakeddistances_data = result.bakeddistances.LockBits(new Rectangle(0, 0, result.bakeddistances.Width, result.bakeddistances.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+
             return result;
         }
         public static double PuddleSmootheCurve(double distance, double xcutoff, double ycutoff)
@@ -77,6 +112,16 @@ namespace TerrainGenerator
             //y = ((c) / (r ^ (2)))(-x ^ (2) + r ^ (2))
             return (ycutoff / (xcutoff * xcutoff)) * (-distance * distance + xcutoff * xcutoff);
         }
+        public unsafe int DistanceTo(Point p)
+        {
+            if (bakedrectangle.Contains(p))
+            {
+                Point adjusted = new Point(p.X - bakedrectangle.Left, p.Y - bakedrectangle.Top);
+                int checkidx = adjusted.X * 4 + adjusted.Y * bakeddistances_data.Stride;
+                return ((byte*)bakeddistances_data.Scan0)[checkidx]; //BGRA
+            }
+            return -1; //Outside bounds
+        }
 
         private static double AngleCartesianDistance(double angleInRadians, double b_radians, Rectangle bounds)
         {
@@ -84,7 +129,8 @@ namespace TerrainGenerator
         }
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern unsafe void* memcpy(void* dest, void* src, UIntPtr count);
-
+        const int blenddst = 50;
+        public static int max_blenddst = (int)Math.Sqrt(blenddst * blenddst * 2);
         public unsafe void DrawPuddle(Bitmap result)
         {
 
@@ -121,20 +167,18 @@ namespace TerrainGenerator
                     byte* mud_loc = mudptr + (x % mudbmp.Width) * 4 + (y % mudbmp.Height) * 4 * mudbmp.Width;
                     byte* water_loc = waterptr + ((x * watertilefactor) % waterbmp.Width) * 4 + ((y * watertilefactor) % waterbmp.Height) * 4 * waterbmp.Width;
 
-                    const double blenddst = 50;
                     const double waterblend = 0.5;
                     if (markptr[x * 4 + y * 4 * result.Width + 2] == 255) // Am I in the polygon?
                     {
+                        //var distance = (double)DistanceTo(new Point(x, y));
                         var distance = bounds.ToArray().DistanceFromPointToPolygon(new Point(x, y));
-                        if (distance <= blenddst) //Blend on edges
+                        if (distance <= blenddst && distance != -1) //Blend on edges
                         {
-                            const double blendstrength = 3;
                             //double blendfactor = distance / (blenddst * blendstrength) + (1 - (1.0 / blendstrength));
                             double blendfactor = Math.Min(distance / blenddst, 1);
 
                             Extensions.BlendColors(result_loc, mud_loc, blendfactor);
                             Extensions.BlendColors(result_loc, water_loc, blendfactor * waterblend);
-
                         }
                         else
                         {

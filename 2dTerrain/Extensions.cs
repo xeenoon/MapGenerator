@@ -10,7 +10,47 @@ namespace TerrainGenerator
             int ydist = point1.Y - point2.Y;
             return (int)Math.Sqrt(xdist * xdist + ydist * ydist);
         }
+        public static Point[] ScalePolygon(this Point[] points, int scaleAmount, Point staticoffset)
+        {
+            // Calculate the centroid of the polygon
+            float centroidX = 0;
+            float centroidY = 0;
+            foreach (var point in points)
+            {
+                centroidX += point.X;
+                centroidY += point.Y;
+            }
+            centroidX /= points.Length;
+            centroidY /= points.Length;
 
+            PointF centroid = new PointF(centroidX, centroidY);
+
+            // Scale each point towards the centroid
+            Point[] scaledPoints = new Point[points.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                // Calculate the vector from the centroid to the point
+                float vectorX = points[i].X - centroid.X;
+                float vectorY = points[i].Y - centroid.Y;
+
+                // Calculate the distance from the centroid to the point
+                float distance = (float)Math.Sqrt(vectorX * vectorX + vectorY * vectorY);
+
+                // Calculate the new distance after scaling
+                float newDistance = Math.Max(0, distance + scaleAmount);
+
+                // Calculate the scale factor
+                float scale = newDistance / distance;
+
+                // Scale the point
+                scaledPoints[i] = new Point(
+                    (int)(centroid.X + vectorX * scale) + staticoffset.X,
+                    (int)(centroid.Y + vectorY * scale) + staticoffset.Y
+                );
+            }
+
+            return scaledPoints;
+        }
         public static Point PolygonCentre(this Point[] bounds)
         {
             float xSum = 0;
