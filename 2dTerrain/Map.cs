@@ -10,7 +10,7 @@ public unsafe class Map
     {
         this.width = width;
         this.height = height;
-        fixed (int* arry = new int[width * height * 4])
+        fixed (int* arry = new int[width * height])
         {
             gridSquares = arry;
         }
@@ -72,21 +72,42 @@ public unsafe class Map
 
             foreach (var door in room.doors)
             {
-                GenerateMazeFromPoint(door);
+                GenerateMazeFromPoint(door.X + door.Y * width);
             }
         }
     }
-    public void GenerateMazeFromPoint(Point p)
+    public void GenerateMazeFromPoint(int p)
     {
-        return;
-        while (true)
+        Random r = new Random();
+        bool canmove = true;
+        while (canmove)
         {
-
+            Stack<int> directions = new Stack<int>((new int[] { 1, -1, width, -width }).ToList());
+            directions.Shuffle();
+            bool placed = false;
+            do
+            {
+                var direction = directions.Pop();
+                if (CanMove(p, direction))
+                {
+                    p += direction;
+                    gridSquares[p] = (int)GridSquareType.Floor;
+                    placed = true;
+                }
+            } while (directions.Count() >= 1);
+            if (!placed)
+            {
+                canmove = false;
+            }
         }
     }
-    public void CanMove(int direction)
+    public bool CanMove(int location, int direction)
     {
-
+        if (*(gridSquares + location + direction) == (int)GridSquareType.Wall)
+        {
+            return true;
+        }
+        return false;
     }
     public static bool RectangleIntersects(Rectangle rectangle, List<Rectangle> rectangles)
     {
