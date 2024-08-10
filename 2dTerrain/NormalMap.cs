@@ -128,12 +128,12 @@ namespace TerrainGenerator
 
             return normalMap;
         }
-        public static Bitmap GenerateNormalMap(Bitmap bitmap, float intensity, Point[] polygon)
+        public static Bitmap GenerateNormalMap(Bitmap bitmap, float intensity, Puddle puddle)
         {
 
             Bitmap polygonmarker = new Bitmap(bitmap.Width, bitmap.Height);
             Graphics graphics = Graphics.FromImage(polygonmarker);
-            graphics.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, polygon); //Mark the pixel
+            graphics.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, puddle.bounds.ToArray()); //Mark the pixel
 
             var markdata = polygonmarker.LockBits(new Rectangle(0, 0, polygonmarker.Width, polygonmarker.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
             var markptr = (byte*)markdata.Scan0;
@@ -200,8 +200,8 @@ namespace TerrainGenerator
                     {
                         const byte recessedval = 225;
                         const double blenddst = 200;
-                        var distance = polygon.DistanceFromPointToPolygon(new Point(x, y));
-                        if (distance <= blenddst) //Blend on edges
+                        var distance = puddle.DistanceTo(new Point(x, y));
+                        if (distance <= blenddst && distance != -1) //Blend on edges
                         {
                             double blendfactor = Math.Min(distance / blenddst, 1);
 
@@ -252,8 +252,8 @@ namespace TerrainGenerator
                 { 2/16f, 4/16f, 2/16f },
                 { 1/16f, 2/16f, 1/16f }
             }; //Sample more from the centre, less from the edges and even less from the corners
-            //Sum is 16 so all kernel values add up to 1
-            //Apply this percentage blur to all the nearby pixels nearby
+               //Sum is 16 so all kernel values add up to 1
+               //Apply this percentage blur to all the nearby pixels nearby
 
             for (int y = 1; y < height - 1; y++)
             {

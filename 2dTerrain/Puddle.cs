@@ -1,5 +1,6 @@
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 
 namespace TerrainGenerator
 {
@@ -114,11 +115,22 @@ namespace TerrainGenerator
         }
         public unsafe int DistanceTo(Point p)
         {
-            if (bakedrectangle.Contains(p))
+            checked
             {
-                Point adjusted = new Point(p.X - bakedrectangle.Left, p.Y - bakedrectangle.Top);
-                int checkidx = adjusted.X * 4 + adjusted.Y * bakeddistances_data.Stride;
-                return ((byte*)bakeddistances_data.Scan0)[checkidx]; //BGRA
+                if (bakedrectangle.Contains(p))
+                {
+                    Point adjusted = new Point(p.X - bakedrectangle.Left, p.Y - bakedrectangle.Top);
+                    int checkidx = adjusted.X * 4 + adjusted.Y * bakeddistances_data.Stride;
+
+                    if (checkidx >= 0 && checkidx < bakeddistances_data.Stride * bakeddistances_data.Height)
+                    {
+                        return ((byte*)bakeddistances_data.Scan0)[checkidx]; //BGRA
+                    }
+                    else
+                    {
+                        throw new IndexOutOfRangeException("x or y out of range");
+                    }
+                }
             }
             return -1; //Outside bounds
         }

@@ -193,9 +193,12 @@ namespace _2dTerrain
             result.UnlockBits(mossbitmapdata);
 
             puddle.DrawPuddle(result);
-            puddle.bakeddistances.UnlockBits(puddle.bakeddistances_data);
+            //puddle.bakeddistances.UnlockBits(puddle.bakeddistances_data);
+            //g.DrawImage(puddle.bakeddistances, new Point(puddle.bakedrectangle.Left, puddle.bakedrectangle.Top));
 
-            NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 0.5f, puddle.bounds.ToArray()), result);
+            //g.DrawPolygon(new Pen(Color.Red), puddle.bounds.ToArray());
+
+            NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 0.5f, puddle), result);
             normalMap.ApplyNormalMap();
 
             //g.FillPolygon(new Pen(Color.Black).Brush, puddle.bounds.ToArray());
