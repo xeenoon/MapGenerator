@@ -52,7 +52,8 @@ namespace _2dTerrain
 
 
             Rock[,] rocks = new Rock[wallwidth, wallheight];
-            var puddle = Puddle.GeneratePuddle(new Rectangle(400, 400, 400, 400), 360);
+            var puddle = new Puddle();
+            puddle.GenerateShape(new Rectangle(400, 400, 400, 400), 360);
             /*
                         for (int y = 0; y < wallheight; ++y)
                         {
