@@ -23,9 +23,10 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += TestDLL;
+            generateButton.Click += GenerateTiles;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
+            Rock.Setup();
         }
         [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr ExtVectorAdd(IntPtr a, IntPtr b, int n);
@@ -250,6 +251,7 @@ namespace _2dTerrain
         }
         public unsafe void GenerateTiles(object sender, EventArgs e)
         {
+            Rock.Setup();
             const int wallwidth = 50;
             const int wallheight = 50;
             const int brickwidth = 50;

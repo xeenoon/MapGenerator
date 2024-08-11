@@ -11,11 +11,26 @@ using System.Threading;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Collections.Immutable;
+using System.Drawing.Imaging;
 
 namespace TerrainGenerator
 {
     public class Rock : ProceduralShape
     {
+        public static Bitmap rock;
+        public static BitmapData rockbmp;
+        public unsafe static byte* rockbmp_scan0;
+        static string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+        static string filepath = exePath + "\\images\\rock.jpg";// + random.Next(1,7).ToString() + ".jpg";
+
+        public unsafe static void Setup()
+        {
+            rock = (Bitmap)Image.FromFile(filepath);
+            rockbmp = rock.LockBits(new Rectangle(0, 0, rock.Width, rock.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
+            rockbmp_scan0 = (byte*)rockbmp.Scan0;
+
+        }
         public Rock()
         {
 
@@ -35,14 +50,6 @@ namespace TerrainGenerator
             var resultbmp = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             var resultbmp_scan0 = (byte*)resultbmp.Scan0;
 
-            //Random random = new Random();
-            string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
-            string filepath = exePath + "\\images\\rock.jpg";// + random.Next(1,7).ToString() + ".jpg";
-
-            var rock = (Bitmap)Image.FromFile(filepath);
-            var rockbmp = rock.LockBits(new Rectangle(0, 0, rock.Width, rock.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-            var rockbmp_scan0 = (byte*)rockbmp.Scan0;
 
             const int shadowdst = 20;
             const int shinedst = 40;
@@ -111,7 +118,6 @@ namespace TerrainGenerator
                 }
             }
             image.UnlockBits(resultbmp);
-            rock.UnlockBits(rockbmp);
         }
     }
 }
