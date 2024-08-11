@@ -120,53 +120,61 @@ namespace TerrainGenerator
         }
         [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
         public static unsafe extern byte* CudaDraw(
-            int rockcentreX, int rockcentreY, int topleftX, int topleftY, int bottomrightX, int bottomrightY,
-            IntPtr resultbmp_scan0, int bakedrectangleLeft, int bakedrectangleTop, int bakedrectangleWidth, int bakedrectangleHeight,
-            IntPtr bakeddistances_data, IntPtr bakedbounds_data,
-            IntPtr filterarry, int resultwidth, int resultheight, IntPtr rockbmp_scan0, int rockWidth, int rockHeight);
+            int* rockcentreXs, int* rockcentreYs, int* topleftXs, int* topleftYs, int* bottomrightXs, int* bottomrightYs,
+            IntPtr resultbmp_scan0, int* bakedrectangleLefts, int* bakedrectangleTops, int* bakedrectangleWidths, int* bakedrectangleHeights,
+            IntPtr* bakeddistances_dataScan0s, IntPtr* bakedbounds_dataScan0s,
+            IntPtr* filters, int resultwidth, int resultheight, IntPtr rockbmp_scan0, int rockWidth, int rockHeight, int numItems);
+
         [DllImport("msvcrt.dll", EntryPoint = "memcpy", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr memcpy(IntPtr dest, IntPtr src, int count);
 
         public static unsafe void CudaDraw(Rock[,] rockgrid, int width, int height, BitmapData resultbmp)
         {
-            int*[] filters = new int*[width * height];
-            int[] centrexs = new int[width * height];
-            int[] centreys = new int[width * height];
 
-            int[] topleftxs = new int[width * height];
-            int[] topleftys = new int[width * height];
+            int numItems = width * height;
 
-            int[] bottomrightxs = new int[width * height];
-            int[] bottomrightys = new int[width * height];
+            // Allocate memory for the pointers
+            int* centreXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+            int* centreYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
 
-            int[] bakedrectanglesLefts = new int[width * height];
-            int[] bakedrectanglesTops = new int[width * height];
-            int[] bakedrectangleWidths = new int[width * height];
-            int[] bakedrectangleHeights = new int[width * height];
+            int* topleftXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+            int* topleftYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
 
-            byte*[] bakeddistances_dataScan0s = new byte*[width * height];
-            byte*[] bakedbounds_dataScan0s = new byte*[width * height];
+            int* bottomrightXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+            int* bottomrightYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
 
+            int* bakedrectangleLefts = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+            int* bakedrectangleTops = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+            int* bakedrectangleWidths = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+            int* bakedrectangleHeights = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
 
-            for (int i = 0; i < width * height; ++i)
+            // Allocate memory for the byte pointers
+            byte** bakeddistances_dataScan0s = (byte**)Marshal.AllocHGlobal(numItems * sizeof(byte*));
+            byte** bakedbounds_dataScan0s = (byte**)Marshal.AllocHGlobal(numItems * sizeof(byte*));
+
+            int** filters = (int**)Marshal.AllocHGlobal(numItems * sizeof(int*));
+
+            // Populate the allocated memory
+            for (int i = 0; i < numItems; ++i)
             {
                 int x = i % width;
                 int y = i / width;
+
                 var filter = Filter.RandomFilter();
                 filters[i] = filter.GetArry();
+                // Copy filter array data to the GPU; not shown here, assumed to be done elsewhere
 
+                centreXs[i] = rockgrid[x, y].centre.X;
+                centreYs[i] = rockgrid[x, y].centre.Y;
 
-                centrexs[i] = rockgrid[x, y].centre.X;
-                centreys[i] = rockgrid[x, y].centre.Y;
+                topleftXs[i] = rockgrid[x, y].rect_bounds.Left;
+                topleftYs[i] = rockgrid[x, y].rect_bounds.Top;
 
-                topleftxs[i] = rockgrid[x, y].rect_bounds.Left;
-                topleftys[i] = rockgrid[x, y].rect_bounds.Top;
+                bottomrightXs[i] = rockgrid[x, y].rect_bounds.Right;
+                bottomrightYs[i] = rockgrid[x, y].rect_bounds.Bottom;
 
-                bottomrightxs[i] = rockgrid[x, y].rect_bounds.Right;
-                bottomrightys[i] = rockgrid[x, y].rect_bounds.Bottom;
-
-                bakedrectanglesLefts[i] = rockgrid[x, y].bakedrectangle.Left;
-                bakedrectanglesTops[i] = rockgrid[x, y].bakedrectangle.Top;
+                bakedrectangleLefts[i] = rockgrid[x, y].bakedrectangle.Left;
+                bakedrectangleTops[i] = rockgrid[x, y].bakedrectangle.Top;
 
                 bakedrectangleWidths[i] = rockgrid[x, y].bakedrectangle.Width;
                 bakedrectangleHeights[i] = rockgrid[x, y].bakedrectangle.Height;
@@ -174,12 +182,32 @@ namespace TerrainGenerator
                 bakeddistances_dataScan0s[i] = (byte*)rockgrid[x, y].bakeddistances_data.Scan0;
                 bakedbounds_dataScan0s[i] = (byte*)rockgrid[x, y].bakedbounds_data.Scan0;
             }
-            for (int i = 0; i < width * height; ++i)
-            {
-                byte* result = CudaDraw(centrexs[i], centreys[i], topleftxs[i], topleftys[i], bottomrightxs[i], bottomrightys[i], resultbmp.Scan0, bakedrectanglesLefts[i], bakedrectanglesTops[i], bakedrectangleWidths[i], bakedrectangleHeights[i],
-                (IntPtr)bakeddistances_dataScan0s[i], (IntPtr)bakedbounds_dataScan0s[i], (IntPtr)filters[i], resultbmp.Width, resultbmp.Height, (IntPtr)rockbmp_scan0, rockbmp.Width, rockbmp.Height);
-                memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
-            }
+
+
+            var result = CudaDraw(centreXs, centreYs, topleftXs, topleftYs, bottomrightXs, bottomrightYs,
+                resultbmp.Scan0, bakedrectangleLefts, bakedrectangleTops, bakedrectangleWidths, bakedrectangleHeights,
+                (IntPtr*)bakeddistances_dataScan0s, (IntPtr*)bakedbounds_dataScan0s, (IntPtr*)filters, resultbmp.Width, resultbmp.Height,
+                rockbmp.Scan0, rockbmp.Width, rockbmp.Height, numItems);
+
+            memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
+
+
+            // Clean up allocated memory
+            Marshal.FreeHGlobal((IntPtr)centreXs);
+            Marshal.FreeHGlobal((IntPtr)centreYs);
+            Marshal.FreeHGlobal((IntPtr)topleftXs);
+            Marshal.FreeHGlobal((IntPtr)topleftYs);
+            Marshal.FreeHGlobal((IntPtr)bottomrightXs);
+            Marshal.FreeHGlobal((IntPtr)bottomrightYs);
+            Marshal.FreeHGlobal((IntPtr)bakedrectangleLefts);
+            Marshal.FreeHGlobal((IntPtr)bakedrectangleTops);
+            Marshal.FreeHGlobal((IntPtr)bakedrectangleWidths);
+            Marshal.FreeHGlobal((IntPtr)bakedrectangleHeights);
+            Marshal.FreeHGlobal((IntPtr)bakeddistances_dataScan0s);
+            Marshal.FreeHGlobal((IntPtr)bakedbounds_dataScan0s);
+
+
+
         }
         public unsafe void CudaDraw(BitmapData resultbmp)
         {
@@ -192,10 +220,10 @@ namespace TerrainGenerator
 
             Filter filter = Filter.RandomFilter();
             var filterarry = filter.GetArry();
-            byte* result = CudaDraw(centre.X, centre.Y, topleft.X, topleft.Y, bottomright.X, bottomright.Y, resultbmp.Scan0, bakedrectangle.Left, bakedrectangle.Top, bakedrectangle.Width, bakedrectangle.Height,
-            bakeddistances_data.Scan0, bakedbounds_data.Scan0, (IntPtr)filterarry, resultbmp.Width, resultbmp.Height, (IntPtr)rockbmp_scan0, rockbmp.Width, rockbmp.Height);
+            //byte* result = CudaDraw(centre.X, centre.Y, topleft.X, topleft.Y, bottomright.X, bottomright.Y, resultbmp.Scan0, bakedrectangle.Left, bakedrectangle.Top, bakedrectangle.Width, bakedrectangle.Height,
+            //bakeddistances_data.Scan0, bakedbounds_data.Scan0, (IntPtr)filterarry, resultbmp.Width, resultbmp.Height, (IntPtr)rockbmp_scan0, rockbmp.Width, rockbmp.Height);
 
-            memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
+            //memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
 
             //CudaDraw(rockcentre, topleft, bottomright, (byte*)resultbmp.Scan0, bakedrectangle, (byte*)bakeddistances_data.Scan0, (byte*)bakedbounds_data.Scan0, filterarry, resultbmp.Width, resultbmp.Height);
         }

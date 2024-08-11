@@ -412,7 +412,7 @@ namespace _2dTerrain
                     rock.centre.Y += yoffset;
                 }
             }
-            var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Rock.CudaDraw(rocks, wallwidth, wallheight, resultbmp);
             /*foreach (var rock in rocks)
             {

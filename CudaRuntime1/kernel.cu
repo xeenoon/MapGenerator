@@ -1,8 +1,38 @@
 ﻿#include <stdio.h>
 #include "cuda_runtime.h"
 #include <device_launch_parameters.h>
+#include <fstream>
+#include <stdarg.h>
 
 #define BYTES_PER_PIXEL 4
+
+std::ofstream logFile("C:\\Users\\ccw10\\Downloads\\segfaultlog.txt", std::ios::app);
+
+void logMessage(const char *message, ...)
+{
+    if (logFile.is_open())
+    {
+        // Get current time
+        std::time_t now = std::time(nullptr);
+        std::tm *localTime = std::localtime(&now);
+
+        // Write time to the file
+        // logFile << std::asctime(localTime) << ": ";
+
+        // Handle variable arguments
+        va_list args;
+        va_start(args, message);
+
+        // Print formatted message to a temporary buffer
+        char buffer[1024];
+        vsnprintf(buffer, sizeof(buffer), message, args);
+
+        // Write formatted message to the file
+        logFile << buffer << std::endl;
+
+        va_end(args);
+    }
+}
 
 // For drawing rocks
 __global__ void CudaDrawKernel(
@@ -13,6 +43,7 @@ __global__ void CudaDrawKernel(
     unsigned char *bakeddistances_data, unsigned char *bakedbounds_data,
     int *filterarry, int resultwidth, int resultheight)
 {
+    return; // This function literally does nothing🫠
     int x = blockIdx.x * blockDim.x + threadIdx.x + topleftX;
     int y = blockIdx.y * blockDim.y + threadIdx.y + topleftY;
 
@@ -74,52 +105,111 @@ __global__ void CudaDrawKernel(
 }
 
 extern "C" __declspec(dllexport) uint8_t *CudaDraw(
-    int rockcentreX, int rockcentreY, int topleftX, int topleftY, int bottomrightX, int bottomrightY,
-    unsigned char *resultbmp_scan0, int bakedrectangleLeft, int bakedrectangleTop, int bakedrectangleWidth, int bakedrectangleHeight,
-    unsigned char *bakeddistances_data, unsigned char *bakedbounds_data,
-    int *filterarry, int resultwidth, int resultheight, unsigned char *rockbmp_scan0, int rockWidth, int rockHeight)
+    int *rockcentreXs, int *rockcentreYs, int *topleftXs, int *topleftYs, int *bottomrightXs, int *bottomrightYs,
+    int *bakedrectangleLefts, int *bakedrectangleTops, int *bakedrectangleWidths, int *bakedrectangleHeights,
+    unsigned char **bakeddistances_dataScan0s, unsigned char **bakedbounds_dataScan0s,
+    int **filters, unsigned char *resultbmp_scan0, int resultwidth, int resultheight,
+    unsigned char *rockbmp_scan0, int rockWidth, int rockHeight, int numItems)
 {
+    logMessage("Called from dll...");
     const int shadowdst = 20;
     const int shinedst = 40;
 
     size_t imageSize = resultwidth * resultheight * BYTES_PER_PIXEL;
+    size_t rockImageSize = rockWidth * rockHeight * BYTES_PER_PIXEL;
 
     // Allocate memory on the GPU for all variables
-    unsigned char *d_resultbmp_scan0, *d_bakeddistances_data, *d_bakedbounds_data, *d_rockbmp_scan0;
-    int *d_filterarry;
+    unsigned char *d_resultbmp_scan0;
+    int *d_rockcentreXs, *d_rockcentreYs, *d_topleftXs, *d_topleftYs, *d_bottomrightXs, *d_bottomrightYs;
+    int *d_bakedrectangleLefts, *d_bakedrectangleTops, *d_bakedrectangleWidths, *d_bakedrectangleHeights;
+    unsigned char **d_bakeddistances_dataScan0s, **d_bakedbounds_dataScan0s;
+    int **d_filters;
+    unsigned char *d_rockbmp_scan0;
 
     cudaMalloc(&d_resultbmp_scan0, imageSize);
-    cudaMalloc(&d_bakeddistances_data, bakedrectangleWidth * bakedrectangleHeight * BYTES_PER_PIXEL);
-    cudaMalloc(&d_bakedbounds_data, bakedrectangleWidth * bakedrectangleHeight * BYTES_PER_PIXEL);
-    cudaMalloc(&d_filterarry, 3 * sizeof(int)); // Assuming filterarry has 3 elements
-    cudaMalloc(&d_rockbmp_scan0, rockWidth * rockHeight * BYTES_PER_PIXEL);
+    cudaMalloc(&d_rockcentreXs, numItems * sizeof(int));
+    cudaMalloc(&d_rockcentreYs, numItems * sizeof(int));
+    cudaMalloc(&d_topleftXs, numItems * sizeof(int));
+    cudaMalloc(&d_topleftYs, numItems * sizeof(int));
+    cudaMalloc(&d_bottomrightXs, numItems * sizeof(int));
+    cudaMalloc(&d_bottomrightYs, numItems * sizeof(int));
+    cudaMalloc(&d_bakedrectangleLefts, numItems * sizeof(int));
+    cudaMalloc(&d_bakedrectangleTops, numItems * sizeof(int));
+    cudaMalloc(&d_bakedrectangleWidths, numItems * sizeof(int));
+    cudaMalloc(&d_bakedrectangleHeights, numItems * sizeof(int));
+    cudaMalloc(&d_bakeddistances_dataScan0s, numItems * sizeof(unsigned char *));
+    cudaMalloc(&d_bakedbounds_dataScan0s, numItems * sizeof(unsigned char *));
+    cudaMalloc(&d_filters, numItems * sizeof(int *));
+    cudaMalloc(&d_rockbmp_scan0, rockImageSize);
+    logMessage("Allocated arrays");
 
-    // Copy data from host to GPU
-    cudaMemcpy(d_resultbmp_scan0, resultbmp_scan0, imageSize, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_bakeddistances_data, bakeddistances_data, bakedrectangleWidth * bakedrectangleHeight * BYTES_PER_PIXEL, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_bakedbounds_data, bakedbounds_data, bakedrectangleWidth * bakedrectangleHeight * BYTES_PER_PIXEL, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_filterarry, filterarry, 3 * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_rockbmp_scan0, rockbmp_scan0, rockWidth * rockHeight * BYTES_PER_PIXEL, cudaMemcpyHostToDevice);
+    // Copy the result bitmap to the device
+    cudaError_t err;
+
+    err = cudaMemcpy(d_resultbmp_scan0, resultbmp_scan0, imageSize, cudaMemcpyHostToDevice);
+    if (err != cudaSuccess)
+    {
+        logMessage("Crashed on memorycopy");
+    }
+    logMessage("Copied result bitmap");
+
+    // Copy data arrays to the device
+    cudaMemcpy(d_rockcentreXs, rockcentreXs, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_rockcentreYs, rockcentreYs, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_topleftXs, topleftXs, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_topleftYs, topleftYs, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_bottomrightXs, bottomrightXs, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_bottomrightYs, bottomrightYs, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_bakedrectangleLefts, bakedrectangleLefts, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_bakedrectangleTops, bakedrectangleTops, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_bakedrectangleWidths, bakedrectangleWidths, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_bakedrectangleHeights, bakedrectangleHeights, numItems * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_rockbmp_scan0, rockbmp_scan0, rockImageSize, cudaMemcpyHostToDevice);
+    logMessage("Copied arrays");
+    // Copy data pointers to the device and allocate memory for each array
+    unsigned char **d_bakeddistances_dataScan0s_copy = new unsigned char *[numItems];
+    unsigned char **d_bakedbounds_dataScan0s_copy = new unsigned char *[numItems];
+    int **d_filters_copy = new int *[numItems];
+
+    // Allocate memory on the device for each data pointer array
+    for (int i = 0; i < numItems; ++i)
+    {
+        cudaMalloc(&d_bakeddistances_dataScan0s_copy[i], resultwidth * resultheight * BYTES_PER_PIXEL);
+        cudaMemcpy(d_bakeddistances_dataScan0s_copy[i], bakeddistances_dataScan0s[i], resultwidth * resultheight * BYTES_PER_PIXEL, cudaMemcpyHostToDevice);
+
+        cudaMalloc(&d_bakedbounds_dataScan0s_copy[i], resultwidth * resultheight * BYTES_PER_PIXEL);
+        cudaMemcpy(d_bakedbounds_dataScan0s_copy[i], bakedbounds_dataScan0s[i], resultwidth * resultheight * BYTES_PER_PIXEL, cudaMemcpyHostToDevice);
+
+        cudaMalloc(&d_filters_copy[i], sizeof(int));
+        cudaMemcpy(d_filters_copy[i], filters[i], sizeof(int), cudaMemcpyHostToDevice);
+    }
+    logMessage("Copied 2d arrays");
+
+    cudaMemcpy(d_bakeddistances_dataScan0s, d_bakeddistances_dataScan0s_copy, numItems * sizeof(unsigned char *), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_bakedbounds_dataScan0s, d_bakedbounds_dataScan0s_copy, numItems * sizeof(unsigned char *), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_filters, d_filters_copy, numItems * sizeof(int *), cudaMemcpyHostToDevice);
 
     // Allocate memory for the output on the device
     unsigned char *d_output;
     cudaMalloc(&d_output, imageSize);
 
-    // Copy the initial result data to the device
-    cudaMemcpy(d_output, d_resultbmp_scan0, imageSize, cudaMemcpyDeviceToDevice);
-
     dim3 blockSize(16, 16);
-    int xrange = bottomrightX - topleftX;
-    int yrange = bottomrightY - topleftY;
 
-    dim3 gridSize((xrange + blockSize.x - 1) / blockSize.x, (yrange + blockSize.y - 1) / blockSize.y);
+    // Launch the kernel for each item
+    for (int i = 0; i < numItems; ++i)
+    {
+        int xrange = bottomrightXs[i] - topleftXs[i];
+        int yrange = bottomrightYs[i] - topleftYs[i];
+        logMessage("Xrange: %d, Yrange %d", xrange, yrange);
+        dim3 gridSize((xrange + blockSize.x - 1) / blockSize.x, (yrange + blockSize.y - 1) / blockSize.y);
 
-    CudaDrawKernel<<<gridSize, blockSize>>>(
-        rockWidth, rockHeight, topleftX, topleftY,
-        bakedrectangleLeft, bakedrectangleTop, bakedrectangleWidth, bakedrectangleHeight,
-        rockcentreX, rockcentreY, shadowdst, shinedst,
-        d_output, d_rockbmp_scan0, d_bakeddistances_data, d_bakedbounds_data,
-        d_filterarry, resultwidth, resultheight);
+        CudaDrawKernel<<<gridSize, blockSize>>>(
+            rockWidth, rockHeight, d_topleftXs[i], d_topleftYs[i],
+            d_bakedrectangleLefts[i], d_bakedrectangleTops[i], d_bakedrectangleWidths[i], d_bakedrectangleHeights[i],
+            d_rockcentreXs[i], d_rockcentreYs[i], shadowdst, shinedst,
+            d_output, d_rockbmp_scan0, d_bakeddistances_dataScan0s[i], d_bakedbounds_dataScan0s[i],
+            d_filters[i], resultwidth, resultheight);
+    }
     cudaDeviceSynchronize();
 
     // Allocate memory on the host for the result
@@ -131,10 +221,27 @@ extern "C" __declspec(dllexport) uint8_t *CudaDraw(
     // Free device memory
     cudaFree(d_output);
     cudaFree(d_resultbmp_scan0);
-    cudaFree(d_bakeddistances_data);
-    cudaFree(d_bakedbounds_data);
-    cudaFree(d_filterarry);
+    cudaFree(d_rockcentreXs);
+    cudaFree(d_rockcentreYs);
+    cudaFree(d_topleftXs);
+    cudaFree(d_topleftYs);
+    cudaFree(d_bottomrightXs);
+    cudaFree(d_bottomrightYs);
+    cudaFree(d_bakedrectangleLefts);
+    cudaFree(d_bakedrectangleTops);
+    cudaFree(d_bakedrectangleWidths);
+    cudaFree(d_bakedrectangleHeights);
     cudaFree(d_rockbmp_scan0);
+
+    for (int i = 0; i < numItems; ++i)
+    {
+        cudaFree(d_bakeddistances_dataScan0s_copy[i]);
+        cudaFree(d_bakedbounds_dataScan0s_copy[i]);
+        cudaFree(d_filters_copy[i]);
+    }
+    delete[] d_bakeddistances_dataScan0s_copy;
+    delete[] d_bakedbounds_dataScan0s_copy;
+    delete[] d_filters_copy;
 
     return h_output; // Return the pointer to the host memory
 }
