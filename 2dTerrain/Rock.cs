@@ -121,9 +121,9 @@ namespace TerrainGenerator
         [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
         public static unsafe extern byte* CudaDraw(
             int* rockcentreXs, int* rockcentreYs, int* topleftXs, int* topleftYs, int* bottomrightXs, int* bottomrightYs,
-            IntPtr resultbmp_scan0, int* bakedrectangleLefts, int* bakedrectangleTops, int* bakedrectangleWidths, int* bakedrectangleHeights,
+            int* bakedrectangleLefts, int* bakedrectangleTops, int* bakedrectangleWidths, int* bakedrectangleHeights,
             IntPtr* bakeddistances_dataScan0s, IntPtr* bakedbounds_dataScan0s,
-            IntPtr* filters, int resultwidth, int resultheight, IntPtr rockbmp_scan0, int rockWidth, int rockHeight, int numItems);
+            IntPtr* filters, IntPtr resultbmp_scan0, int resultwidth, int resultheight, IntPtr rockbmp_scan0, int rockWidth, int rockHeight, int numItems);
 
         [DllImport("msvcrt.dll", EntryPoint = "memcpy", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr memcpy(IntPtr dest, IntPtr src, int count);
@@ -185,8 +185,8 @@ namespace TerrainGenerator
 
 
             var result = CudaDraw(centreXs, centreYs, topleftXs, topleftYs, bottomrightXs, bottomrightYs,
-                resultbmp.Scan0, bakedrectangleLefts, bakedrectangleTops, bakedrectangleWidths, bakedrectangleHeights,
-                (IntPtr*)bakeddistances_dataScan0s, (IntPtr*)bakedbounds_dataScan0s, (IntPtr*)filters, resultbmp.Width, resultbmp.Height,
+                bakedrectangleLefts, bakedrectangleTops, bakedrectangleWidths, bakedrectangleHeights,
+                (IntPtr*)bakeddistances_dataScan0s, (IntPtr*)bakedbounds_dataScan0s, (IntPtr*)filters, resultbmp.Scan0, resultbmp.Width, resultbmp.Height,
                 rockbmp.Scan0, rockbmp.Width, rockbmp.Height, numItems);
 
             memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);

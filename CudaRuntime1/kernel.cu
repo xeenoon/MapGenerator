@@ -36,45 +36,46 @@ void logMessage(const char *message, ...)
 
 // For drawing rocks
 __global__ void CudaDrawKernel(
-    int rockWidth, int rockHeight, int topleftX, int topleftY,
-    int bakedrectangleLeft, int bakedrectangleTop, int bakedrectangleWidth, int bakedrectangleHeight,
-    int rockcentreX, int rockcentreY, int shadowdst, int shinedst,
+    int rockWidth, int rockHeight, int *topleftXs, int *topleftYs,
+    int *bakedrectangleLefts, int *bakedrectangleTops, int *bakedrectangleWidths, int *bakedrectangleHeights,
+    int *rockcentreXs, int *rockcentreYs, int shadowdst, int shinedst,
     unsigned char *resultbmp_scan0, unsigned char *rockbmp_scan0,
-    unsigned char *bakeddistances_data, unsigned char *bakedbounds_data,
-    int *filterarry, int resultwidth, int resultheight)
+    unsigned char **bakeddistances_dataScan0s, unsigned char **bakedbounds_dataScan0s,
+    int **filters, int resultwidth, int resultheight, int index)
 {
-    return; // This function literally does nothing🫠
-    int x = blockIdx.x * blockDim.x + threadIdx.x + topleftX;
-    int y = blockIdx.y * blockDim.y + threadIdx.y + topleftY;
+    int x = blockIdx.x * blockDim.x + threadIdx.x + topleftXs[index];
+    int y = blockIdx.y * blockDim.y + threadIdx.y + topleftYs[index];
 
     if (x >= resultwidth || y >= resultheight || x < 0 || y < 0)
         return;
-    int resultIndex = x * BYTES_PER_PIXEL + y * resultwidth * BYTES_PER_PIXEL;
 
+    int resultIndex = x * BYTES_PER_PIXEL + y * resultwidth * BYTES_PER_PIXEL;
     bool inpolygon = false;
     double distance = -1.0;
 
-    int adjustedX = x - bakedrectangleLeft;
-    int adjustedY = y - bakedrectangleTop;
-    int checkidx = adjustedX * BYTES_PER_PIXEL + adjustedY * bakedrectangleWidth * BYTES_PER_PIXEL;
+    int adjustedX = x - bakedrectangleLefts[index];
+    int adjustedY = y - bakedrectangleTops[index];
+    int checkidx = adjustedX * BYTES_PER_PIXEL + adjustedY * bakedrectangleWidths[index] * BYTES_PER_PIXEL;
 
-    if (adjustedX >= 0 && adjustedY >= 0 && adjustedX < bakedrectangleWidth && adjustedY < bakedrectangleHeight)
+    if (adjustedX >= 0 && adjustedY >= 0 && adjustedX < bakedrectangleWidths[index] && adjustedY < bakedrectangleHeights[index])
     {
-        if (bakedbounds_data[checkidx + 2] == 255)
+        if (bakedbounds_dataScan0s[index][checkidx + 2] == 255)
         {
             inpolygon = true;
         }
-        distance = bakeddistances_data[checkidx];
+        distance = bakeddistances_dataScan0s[index][checkidx];
     }
 
     if (inpolygon)
     {
-
         int rockIndex = (x % rockWidth) * BYTES_PER_PIXEL + (y % rockHeight) * rockWidth * BYTES_PER_PIXEL;
-        memcpy(resultbmp_scan0 + resultIndex, rockbmp_scan0 + rockIndex, BYTES_PER_PIXEL);
+        for (int i = 0; i < BYTES_PER_PIXEL; ++i)
+        {
+            resultbmp_scan0[resultIndex + i] = rockbmp_scan0[rockIndex + i];
+        }
 
-        int xdist = rockcentreX - x;
-        int ydist = rockcentreY - y;
+        int xdist = rockcentreXs[index] - x;
+        int ydist = rockcentreYs[index] - y;
         double centredst = sqrt((double)(xdist * xdist + ydist * ydist));
 
         if (centredst <= shinedst)
@@ -88,7 +89,7 @@ __global__ void CudaDrawKernel(
 
         for (int i = 0; i < 3; ++i)
         {
-            resultbmp_scan0[resultIndex + i] = min(255, filterarry[i] + resultbmp_scan0[resultIndex + i]);
+            resultbmp_scan0[resultIndex + i] = min(255, filters[index][i] + resultbmp_scan0[resultIndex + i]);
         }
         resultbmp_scan0[resultIndex + 3] = 255;
     }
@@ -144,14 +145,7 @@ extern "C" __declspec(dllexport) uint8_t *CudaDraw(
     logMessage("Allocated arrays");
 
     // Copy the result bitmap to the device
-    cudaError_t err;
-
-    err = cudaMemcpy(d_resultbmp_scan0, resultbmp_scan0, imageSize, cudaMemcpyHostToDevice);
-    if (err != cudaSuccess)
-    {
-        logMessage("Crashed on memorycopy");
-    }
-    logMessage("Copied result bitmap");
+    cudaMemcpy(d_resultbmp_scan0, resultbmp_scan0, imageSize, cudaMemcpyHostToDevice);
 
     // Copy data arrays to the device
     cudaMemcpy(d_rockcentreXs, rockcentreXs, numItems * sizeof(int), cudaMemcpyHostToDevice);
@@ -174,11 +168,12 @@ extern "C" __declspec(dllexport) uint8_t *CudaDraw(
     // Allocate memory on the device for each data pointer array
     for (int i = 0; i < numItems; ++i)
     {
-        cudaMalloc(&d_bakeddistances_dataScan0s_copy[i], resultwidth * resultheight * BYTES_PER_PIXEL);
-        cudaMemcpy(d_bakeddistances_dataScan0s_copy[i], bakeddistances_dataScan0s[i], resultwidth * resultheight * BYTES_PER_PIXEL, cudaMemcpyHostToDevice);
+        size_t bakedrectanglesize = bakedrectangleWidths[i] * bakedrectangleHeights[i] * BYTES_PER_PIXEL;
+        cudaMalloc(&d_bakeddistances_dataScan0s_copy[i], bakedrectanglesize);
+        cudaMemcpy(d_bakeddistances_dataScan0s_copy[i], bakeddistances_dataScan0s[i], bakedrectanglesize, cudaMemcpyHostToDevice);
 
-        cudaMalloc(&d_bakedbounds_dataScan0s_copy[i], resultwidth * resultheight * BYTES_PER_PIXEL);
-        cudaMemcpy(d_bakedbounds_dataScan0s_copy[i], bakedbounds_dataScan0s[i], resultwidth * resultheight * BYTES_PER_PIXEL, cudaMemcpyHostToDevice);
+        cudaMalloc(&d_bakedbounds_dataScan0s_copy[i], bakedrectanglesize);
+        cudaMemcpy(d_bakedbounds_dataScan0s_copy[i], bakedbounds_dataScan0s[i], bakedrectanglesize, cudaMemcpyHostToDevice);
 
         cudaMalloc(&d_filters_copy[i], sizeof(int));
         cudaMemcpy(d_filters_copy[i], filters[i], sizeof(int), cudaMemcpyHostToDevice);
@@ -192,6 +187,7 @@ extern "C" __declspec(dllexport) uint8_t *CudaDraw(
     // Allocate memory for the output on the device
     unsigned char *d_output;
     cudaMalloc(&d_output, imageSize);
+    cudaMemcpy(d_output, resultbmp_scan0, imageSize, cudaMemcpyHostToDevice); // Copy the old bitmap
 
     dim3 blockSize(16, 16);
 
@@ -204,11 +200,11 @@ extern "C" __declspec(dllexport) uint8_t *CudaDraw(
         dim3 gridSize((xrange + blockSize.x - 1) / blockSize.x, (yrange + blockSize.y - 1) / blockSize.y);
 
         CudaDrawKernel<<<gridSize, blockSize>>>(
-            rockWidth, rockHeight, d_topleftXs[i], d_topleftYs[i],
-            d_bakedrectangleLefts[i], d_bakedrectangleTops[i], d_bakedrectangleWidths[i], d_bakedrectangleHeights[i],
-            d_rockcentreXs[i], d_rockcentreYs[i], shadowdst, shinedst,
-            d_output, d_rockbmp_scan0, d_bakeddistances_dataScan0s[i], d_bakedbounds_dataScan0s[i],
-            d_filters[i], resultwidth, resultheight);
+            rockWidth, rockHeight, d_topleftXs, d_topleftYs,
+            d_bakedrectangleLefts, d_bakedrectangleTops, d_bakedrectangleWidths, d_bakedrectangleHeights,
+            d_rockcentreXs, d_rockcentreYs, shadowdst, shinedst,
+            d_output, d_rockbmp_scan0, d_bakeddistances_dataScan0s, d_bakedbounds_dataScan0s,
+            d_filters, resultwidth, resultheight, i);
     }
     cudaDeviceSynchronize();
 
