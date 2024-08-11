@@ -2,6 +2,18 @@ using System.Drawing.Imaging;
 
 namespace TerrainGenerator
 {
+
+    public struct Bump
+    {
+        public double degrees;
+        public double radius;
+
+        public Bump(double degrees, double radius)
+        {
+            this.degrees = degrees;
+            this.radius = radius;
+        }
+    }
     public class ProceduralShape
     {
         public List<Point> bounds = new List<Point>();
@@ -13,7 +25,7 @@ namespace TerrainGenerator
         public BitmapData bakeddistances_data;
 
         public Rectangle bakedrectangle;
-        internal const int blenddst = 50;
+        internal const int blenddst = 20;
         public static int max_blenddst = (int)Math.Sqrt(blenddst * blenddst * 2);
         const double MAX_BUMP_SIZE = 0.05; //Dont let a bump be more than 0.4x the 
 
@@ -107,23 +119,21 @@ namespace TerrainGenerator
         }
         public unsafe int DistanceTo(Point p)
         {
-            checked
+            if (bakedrectangle.Contains(p))
             {
-                if (bakedrectangle.Contains(p))
-                {
-                    Point adjusted = new Point(p.X - bakedrectangle.Left, p.Y - bakedrectangle.Top);
-                    int checkidx = adjusted.X * 4 + adjusted.Y * bakeddistances_data.Stride;
+                Point adjusted = new Point(p.X - bakedrectangle.Left, p.Y - bakedrectangle.Top);
+                int checkidx = adjusted.X * 4 + adjusted.Y * bakeddistances_data.Stride;
 
-                    if (checkidx >= 0 && checkidx < bakeddistances_data.Stride * bakeddistances_data.Height)
-                    {
-                        return ((byte*)bakeddistances_data.Scan0)[checkidx]; //BGRA
-                    }
-                    else
-                    {
-                        throw new IndexOutOfRangeException("x or y out of range");
-                    }
+                if (checkidx >= 0 && checkidx < bakeddistances_data.Stride * bakeddistances_data.Height)
+                {
+                    return ((byte*)bakeddistances_data.Scan0)[checkidx]; //BGRA
+                }
+                else
+                {
+                    throw new IndexOutOfRangeException("x or y out of range");
                 }
             }
+
             return -1; //Outside bounds
         }
         public static double CurvePoints(double distance, double xcutoff, double ycutoff)
