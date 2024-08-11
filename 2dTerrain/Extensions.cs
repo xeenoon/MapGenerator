@@ -51,6 +51,15 @@ namespace TerrainGenerator
 
             return scaledPoints;
         }
+        public static Point[] Offset(this Point[] points, Point offset)
+        {
+            Point[] result = new Point[points.Length];
+            for (int i = 0; i < points.Length; ++i)
+            {
+                result[i] = new Point(points[i].X + offset.X, points[i].Y + offset.Y);
+            }
+            return result;
+        }
         public static Point PolygonCentre(this Point[] bounds)
         {
             float xSum = 0;

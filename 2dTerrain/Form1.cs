@@ -301,6 +301,7 @@ namespace _2dTerrain
                         rock.bounds[i] = new Point(point.X + xoffset, point.Y); //Apply offset
                     }
                     rock.bakedrectangle.X += xoffset;
+                    rock.rect_bounds.X += xoffset;
 
                     xoffset += furtherestright; //Make the xoffset for the next rock the furtherest right point on this rock
                                                 //Make sure to update after placing the rock
@@ -403,20 +404,16 @@ namespace _2dTerrain
                         rock.bounds[i] = new Point(point.X, point.Y + yoffset); //Apply offset
                     }
                     rock.bakedrectangle.Y += yoffset;
-
-
+                    rock.rect_bounds.Y += yoffset;
                 }
             }
-
+            var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             foreach (var rock in rocks)
             {
-                g.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, rock.bounds.ToArray()); //Mark the pixels
-
-                var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
                 rock.Draw(resultbmp);
 
-                result.UnlockBits(resultbmp);
             }
+            result.UnlockBits(resultbmp);
             s.Stop();
             long rockmilis = s.ElapsedMilliseconds;
             s.Restart();

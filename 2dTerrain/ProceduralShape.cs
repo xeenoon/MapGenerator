@@ -23,6 +23,8 @@ namespace TerrainGenerator
         public List<Point> inner_bounds = new List<Point>();
         public Bitmap bakeddistances;
         public BitmapData bakeddistances_data;
+        public Bitmap bakedbounds;
+        public BitmapData bakedbounds_data;
 
         public Rectangle bakedrectangle;
         internal const int blenddst = 20;
@@ -116,6 +118,12 @@ namespace TerrainGenerator
             //g.FillPolygon(new Pen(Color.FromArgb(255, 255, 255, 255)).Brush, result.bounds.ToArray().ScalePolygon(-blenddst, new Point(-left + max_blenddst, -top + max_blenddst)));
 
             bakeddistances_data = bakeddistances.LockBits(new Rectangle(0, 0, bakeddistances.Width, bakeddistances.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+
+            bakedbounds = new Bitmap(rect_bounds.Width + max_blenddst * 2, rect_bounds.Height + max_blenddst * 2);
+            g = Graphics.FromImage(bakedbounds);
+            g.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, this.bounds.ToArray().Offset(new Point(-left + max_blenddst, -top + max_blenddst))); //Mark the pixel
+            bakedbounds_data = bakedbounds.LockBits(new Rectangle(0, 0, bakeddistances.Width, bakeddistances.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+
         }
         public unsafe int DistanceTo(Point p)
         {
@@ -135,6 +143,25 @@ namespace TerrainGenerator
             }
 
             return -1; //Outside bounds
+        }
+        public unsafe bool Contains(Point p)
+        {
+            if (bakedrectangle.Contains(p))
+            {
+                Point adjusted = new Point(p.X - bakedrectangle.Left, p.Y - bakedrectangle.Top);
+                int checkidx = adjusted.X * 4 + adjusted.Y * bakeddistances_data.Stride;
+
+                if (checkidx >= 0 && checkidx < bakeddistances_data.Stride * bakeddistances_data.Height)
+                {
+                    return ((byte*)bakedbounds_data.Scan0)[checkidx + 2] == 255;
+                }
+                else
+                {
+                    throw new IndexOutOfRangeException("x or y out of range");
+                }
+            }
+
+            return false; //Outside bounds
         }
         public static double CurvePoints(double distance, double xcutoff, double ycutoff)
         {

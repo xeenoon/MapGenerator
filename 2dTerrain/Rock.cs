@@ -41,8 +41,11 @@ namespace TerrainGenerator
         public unsafe void Draw(BitmapData resultbmp)
         {
             //Find a bounds around the bounds of the rock
-            Point topleft = new Point(bounds.OrderBy(p => p.X).FirstOrDefault().X, bounds.OrderBy(p => p.Y).FirstOrDefault().Y);
-            Point bottomright = new Point(bounds.OrderByDescending(p => p.X).FirstOrDefault().X, bounds.OrderByDescending(p => p.Y).FirstOrDefault().Y);
+            //Point topleft = new Point(bounds.OrderBy(p => p.X).FirstOrDefault().X, bounds.OrderBy(p => p.Y).FirstOrDefault().Y);
+            //Point bottomright = new Point(bounds.OrderByDescending(p => p.X).FirstOrDefault().X, bounds.OrderByDescending(p => p.Y).FirstOrDefault().Y);
+
+            Point topleft = new Point(rect_bounds.Left, rect_bounds.Top);
+            Point bottomright = new Point(rect_bounds.Right, rect_bounds.Bottom);
 
             var resultbmp_scan0 = (byte*)resultbmp.Scan0;
 
@@ -51,6 +54,7 @@ namespace TerrainGenerator
             const int shinedst = 40;
             Point rockcentre = bounds.ToArray().PolygonCentre();
             Filter filter = Filter.RandomFilter();
+
             for (int x = topleft.X - shadowdst; x < bottomright.X + shadowdst; ++x)
             {
                 for (int y = topleft.Y - shadowdst; y < bottomright.Y + shadowdst; ++y)
@@ -60,7 +64,7 @@ namespace TerrainGenerator
                         continue;
                     }
                     const int BYTES_PER_PIXEL = 4;
-                    bool inpolygon = resultbmp_scan0[x * BYTES_PER_PIXEL + y * resultbmp.Stride + 2] == 255;
+                    bool inpolygon = Contains(new Point(x, y));
                     if (inpolygon) // Am I in the polygon?
                     {
                         int resultIndex = x * BYTES_PER_PIXEL + y * resultbmp.Stride;
@@ -113,6 +117,7 @@ namespace TerrainGenerator
                     }
                 }
             }
+
         }
     }
 }
