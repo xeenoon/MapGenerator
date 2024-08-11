@@ -130,7 +130,6 @@ namespace TerrainGenerator
 
         public static unsafe void CudaDraw(Rock[,] rockgrid, int width, int height, BitmapData resultbmp)
         {
-
             int numItems = width * height;
 
             // Allocate memory for the pointers

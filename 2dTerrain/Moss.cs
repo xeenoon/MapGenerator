@@ -1,4 +1,5 @@
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 namespace TerrainGenerator
@@ -14,9 +15,12 @@ namespace TerrainGenerator
             width = bitmapData.Width;
             height = bitmapData.Height;
         }
+        [DllImport("noise2d.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern float* GeneratePerlinNoise(int width, int height, int octaveCount);
+
         public void OverlayMoss(double density, int noisedepth)
         {
-            var perlin = PerlinNoise.GeneratePerlinNoise(width, height, noisedepth);
+            var perlin = GeneratePerlinNoise(width, height, noisedepth);
             string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             var mossimage = (Bitmap)Image.FromFile(exePath + "\\images\\mossseam.png");
@@ -27,7 +31,7 @@ namespace TerrainGenerator
                 for (int y = 0; y < height; y++)
                 {
                     //Apply moss based off of perlin noise
-                    double blendfactor = perlin[x][y] * density;
+                    double blendfactor = perlin[x + y * width] * density;
                     Extensions.BlendColors(image + x * 4 + y * width * 4, moss_scan0 + ((x % mossdata.Width) * 4) + ((y % mossdata.Height) * 4 * mossdata.Width), blendfactor);
                 }
             }

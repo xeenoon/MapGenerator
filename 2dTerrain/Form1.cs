@@ -414,10 +414,6 @@ namespace _2dTerrain
             }
             var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Rock.CudaDraw(rocks, wallwidth, wallheight, resultbmp);
-            /*foreach (var rock in rocks)
-            {
-                rock.CudaDraw(resultbmp);
-            }*/
             result.UnlockBits(resultbmp);
             s.Stop();
             long rockmilis = s.ElapsedMilliseconds;
@@ -487,95 +483,7 @@ namespace _2dTerrain
             var dy = p.Y - yy;
             return new PointF(dx, dy);
         }
-        public bool PointInPolygon(int x, int y, Point[] polygon)
-        {
-            int polygonLength = polygon.Length, i = 0;
-            bool inside = false;
-            // x, y for tested point.
-            float pointX = x, pointY = y;
-            // start / end point for the current polygon segment.
-            float startX, startY, endX, endY;
-            PointF endPoint = polygon[polygonLength - 1];
-            endX = endPoint.X;
-            endY = endPoint.Y;
-            while (i < polygonLength)
-            {
-                startX = endX; startY = endY;
-                endPoint = polygon[i++];
-                endX = endPoint.X; endY = endPoint.Y;
-                //
-                inside ^= (endY > pointY ^ startY > pointY) /* ? pointY inside [startY;endY] segment ? */
-                          && /* if so, test if it is under the segment */
-                          ((pointX - endX) < (pointY - endY) * (startX - endX) / (startY - endY));
-            }
-            return inside;
-        }
-        struct ColorArea
-        {
-            public Color color;
-            public double upperbound;
 
-            public ColorArea(Color color, double upperbound)
-            {
-                this.color = color;
-                this.upperbound = upperbound;
-            }
-        }
-        ColorArea[] areas ={new ColorArea(Color.FromArgb(36, 134, 255) , 0.3),
-                            new ColorArea(Color.FromArgb(246,215,176)  , 0.4),
-                            new ColorArea(Color.FromArgb(77, 122, 77)  , 0.7),
-                            new ColorArea(Color.FromArgb(119, 125, 119), 1)};
-        public unsafe void GenerateMap(object sender, EventArgs e)
-        {
-            result = new Bitmap(Width, Height);
-            var noise = PerlinNoise.GenerateWhiteNoise(Width, Height);
-            var perlin = PerlinNoise.GeneratePerlinNoise(Width, Height, 9);
-            var data = result.LockBits(new Rectangle(0, 0, Width, Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-            for (int x = 0; x < Width; ++x)
-            {
-                for (int y = 0; y < Height; ++y)
-                {
-                    byte* pixel = ((byte*)data.Scan0) + x * 4 + y * data.Stride;
-                    pixel[3] = 255;
-                    double height = perlin[x][y];
-                    for (int i = 0; i < areas.Length; i++)
-                    {
-                        ColorArea area = areas[i];
-                        if (height < area.upperbound)
-                        {
-                            Color mycolor = Color.FromArgb(area.color.R, area.color.G, area.color.B);
-                            double areaheight = area.upperbound;
-                            if (i >= 1) //Blend downwards
-                            {
-                                ColorArea lowerarea = areas[i - 1];
-                                areaheight -= lowerarea.upperbound;
-                            }
-
-                            pixel[0] = area.color.B;
-                            pixel[1] = area.color.G;
-                            pixel[2] = area.color.R;
-                            break;
-                        }
-                    }
-                }
-            }
-            result.UnlockBits(data);
-            pictureBox.Invalidate();
-        }
-        public static Color BlendColors(Color color1, Color color2, float blendFactor)
-        {
-            // Clamp blendFactor between 0 and 1
-            blendFactor = Math.Max(0, Math.Min(1, blendFactor));
-
-            // Calculate new color components
-            int newRed = (int)(color1.R * (1 - blendFactor) + color2.R * blendFactor);
-            int newGreen = (int)(color1.G * (1 - blendFactor) + color2.G * blendFactor);
-            int newBlue = (int)(color1.B * (1 - blendFactor) + color2.B * blendFactor);
-
-            // Return the new blended color
-            return Color.FromArgb(newRed, newGreen, newBlue);
-        }
         public void DrawMap(object sender, PaintEventArgs e)
         {
             e.Graphics.DrawImage(result, 0, 0, Width, Height);
