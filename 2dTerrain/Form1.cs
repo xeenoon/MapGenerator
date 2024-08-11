@@ -263,6 +263,7 @@ namespace _2dTerrain
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
 
+
             string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             var grout = (Bitmap)Image.FromFile(exePath + "\\images\\dirtseam.jpg");
@@ -274,6 +275,7 @@ namespace _2dTerrain
                     g.DrawImage(grout, new Point(x * grout.Width / tilesize, y * grout.Height / tilesize));
                 }
             }
+
             s.Stop();
             long setuptime = s.ElapsedMilliseconds;
             s.Restart();
@@ -411,7 +413,7 @@ namespace _2dTerrain
             var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             foreach (var rock in rocks)
             {
-                rock.Draw(resultbmp);
+                rock.CudaDraw(resultbmp);
             }
             result.UnlockBits(resultbmp);
             s.Stop();
