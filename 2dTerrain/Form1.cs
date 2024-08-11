@@ -28,10 +28,10 @@ namespace _2dTerrain
             Controls.Add(pictureBox);
         }
         [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr ExtVectorAdd(IntPtr a, IntPtr b);
+        public static extern IntPtr ExtVectorAdd(IntPtr a, IntPtr b, int n);
 
         [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
-        public unsafe static extern void FreeMemory(int* ptr);
+        public unsafe static extern void FreeMemory(IntPtr ptr);
         public unsafe void TestDLL(object sender, EventArgs e)
         {
             int size = 1024;
@@ -48,17 +48,23 @@ namespace _2dTerrain
 
             Marshal.Copy(a, 0, ptrA, size);
             Marshal.Copy(b, 0, ptrB, size);
-            IntPtr c = ExtVectorAdd(ptrA, ptrB);
-            MessageBox.Show($"C: {c}");
-            string result = "";
 
+            IntPtr c = ExtVectorAdd(ptrA, ptrB, size);
+            if (c == IntPtr.Zero)
+            {
+                MessageBox.Show("Failed to allocate memory on GPU.");
+                return;
+            }
+
+            string result = "";
             for (int i = 0; i < 10; i++)
             {
-                result += $"c[{i}] = {((int*)c)[i]}";
+                int value = Marshal.ReadInt32(c + i * sizeof(int));
+                result += $"c[{i}] = {value}\n";
             }
             MessageBox.Show(result);
 
-            FreeMemory((int*)c);
+            FreeMemory(c);
             Marshal.FreeHGlobal(ptrA);
             Marshal.FreeHGlobal(ptrB);
 
