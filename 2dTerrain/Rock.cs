@@ -38,16 +38,12 @@ namespace TerrainGenerator
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr memcpy(IntPtr dest, IntPtr src, UIntPtr count);
 
-        public unsafe void Draw(Bitmap image)
+        public unsafe void Draw(BitmapData resultbmp)
         {
-            Graphics graphics = Graphics.FromImage(image);
-            graphics.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, bounds.ToArray()); //Mark the pixel
-
             //Find a bounds around the bounds of the rock
             Point topleft = new Point(bounds.OrderBy(p => p.X).FirstOrDefault().X, bounds.OrderBy(p => p.Y).FirstOrDefault().Y);
             Point bottomright = new Point(bounds.OrderByDescending(p => p.X).FirstOrDefault().X, bounds.OrderByDescending(p => p.Y).FirstOrDefault().Y);
 
-            var resultbmp = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             var resultbmp_scan0 = (byte*)resultbmp.Scan0;
 
 
@@ -59,7 +55,7 @@ namespace TerrainGenerator
             {
                 for (int y = topleft.Y - shadowdst; y < bottomright.Y + shadowdst; ++y)
                 {
-                    if (x >= image.Width || y >= image.Height || x < 0 || y < 0)
+                    if (x >= resultbmp.Width || y >= resultbmp.Height || x < 0 || y < 0)
                     {
                         continue;
                     }
@@ -117,7 +113,6 @@ namespace TerrainGenerator
                     }
                 }
             }
-            image.UnlockBits(resultbmp);
         }
     }
 }

@@ -225,7 +225,7 @@ namespace _2dTerrain
                     {
                         continue;
                     }
-                    rock.Draw(result);
+                    //rock.Draw(result);
                     //g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
                 }
             }
@@ -403,24 +403,41 @@ namespace _2dTerrain
                         rock.bounds[i] = new Point(point.X, point.Y + yoffset); //Apply offset
                     }
                     rock.bakedrectangle.Y += yoffset;
-                    rock.Draw(result);
-                    //g.DrawRectangle(new Pen(Color.Red), rock.bakedrectangle);
-                    //g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
+
+
                 }
             }
+
+            foreach (var rock in rocks)
+            {
+                g.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, rock.bounds.ToArray()); //Mark the pixels
+
+                var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+                rock.Draw(resultbmp);
+
+                result.UnlockBits(resultbmp);
+            }
+            s.Stop();
+            long rockmilis = s.ElapsedMilliseconds;
+            s.Restart();
             //Create the normal map
             NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 1f), result);
             normalMap.ApplyNormalMap();
-
+            s.Stop();
+            long normalmilis = s.ElapsedMilliseconds;
+            s.Restart();
             //Draw the moss overlay
             var mossbitmapdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Moss moss = new Moss(mossbitmapdata);
             moss.OverlayMoss(0.35, 7);
             result.UnlockBits(mossbitmapdata);
 
-            pictureBox.Invalidate();
             s.Stop();
-            MessageBox.Show("Total time: " + s.ElapsedMilliseconds.ToString());
+            long mossmilis = s.ElapsedMilliseconds;
+
+            pictureBox.Invalidate();
+            string times = $"Rock: {rockmilis}\nNormal: {normalmilis}\nMoss: {mossmilis}";
+            MessageBox.Show(times);
         }
         public struct Line
         {
