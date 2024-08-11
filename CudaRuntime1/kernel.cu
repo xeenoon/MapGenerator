@@ -41,8 +41,9 @@ __global__ void CudaDrawKernel(
     int *rockcentreXs, int *rockcentreYs, int shadowdst, int shinedst,
     unsigned char *resultbmp_scan0, unsigned char *rockbmp_scan0,
     unsigned char **bakeddistances_dataScan0s, unsigned char **bakedbounds_dataScan0s,
-    int **filters, int resultwidth, int resultheight, int index)
+    int **filters, int resultwidth, int resultheight)
 {
+    int index = blockIdx.z;
     int x = blockIdx.x * blockDim.x + threadIdx.x + topleftXs[index];
     int y = blockIdx.y * blockDim.y + threadIdx.y + topleftYs[index];
 
@@ -110,7 +111,7 @@ extern "C" __declspec(dllexport) uint8_t *CudaDraw(
     int *bakedrectangleLefts, int *bakedrectangleTops, int *bakedrectangleWidths, int *bakedrectangleHeights,
     unsigned char **bakeddistances_dataScan0s, unsigned char **bakedbounds_dataScan0s,
     int **filters, unsigned char *resultbmp_scan0, int resultwidth, int resultheight,
-    unsigned char *rockbmp_scan0, int rockWidth, int rockHeight, int numItems)
+    unsigned char *rockbmp_scan0, int rockWidth, int rockHeight, int numItems, int maxrockwidth, int maxrockheight)
 {
     logMessage("Called from dll...");
     const int shadowdst = 20;
@@ -190,22 +191,15 @@ extern "C" __declspec(dllexport) uint8_t *CudaDraw(
     cudaMemcpy(d_output, resultbmp_scan0, imageSize, cudaMemcpyHostToDevice); // Copy the old bitmap
 
     dim3 blockSize(16, 16);
+    dim3 gridSize((maxrockwidth + blockSize.x - 1) / blockSize.x, (maxrockheight + blockSize.y - 1) / blockSize.y, numItems);
 
-    // Launch the kernel for each item
-    for (int i = 0; i < numItems; ++i)
-    {
-        int xrange = bottomrightXs[i] - topleftXs[i];
-        int yrange = bottomrightYs[i] - topleftYs[i];
-        logMessage("Xrange: %d, Yrange %d", xrange, yrange);
-        dim3 gridSize((xrange + blockSize.x - 1) / blockSize.x, (yrange + blockSize.y - 1) / blockSize.y);
+    CudaDrawKernel<<<gridSize, blockSize>>>(
+        rockWidth, rockHeight, d_topleftXs, d_topleftYs,
+        d_bakedrectangleLefts, d_bakedrectangleTops, d_bakedrectangleWidths, d_bakedrectangleHeights,
+        d_rockcentreXs, d_rockcentreYs, shadowdst, shinedst,
+        d_output, d_rockbmp_scan0, d_bakeddistances_dataScan0s, d_bakedbounds_dataScan0s,
+        d_filters, resultwidth, resultheight);
 
-        CudaDrawKernel<<<gridSize, blockSize>>>(
-            rockWidth, rockHeight, d_topleftXs, d_topleftYs,
-            d_bakedrectangleLefts, d_bakedrectangleTops, d_bakedrectangleWidths, d_bakedrectangleHeights,
-            d_rockcentreXs, d_rockcentreYs, shadowdst, shinedst,
-            d_output, d_rockbmp_scan0, d_bakeddistances_dataScan0s, d_bakedbounds_dataScan0s,
-            d_filters, resultwidth, resultheight, i);
-    }
     cudaDeviceSynchronize();
 
     // Allocate memory on the host for the result

@@ -123,7 +123,7 @@ namespace TerrainGenerator
             int* rockcentreXs, int* rockcentreYs, int* topleftXs, int* topleftYs, int* bottomrightXs, int* bottomrightYs,
             int* bakedrectangleLefts, int* bakedrectangleTops, int* bakedrectangleWidths, int* bakedrectangleHeights,
             IntPtr* bakeddistances_dataScan0s, IntPtr* bakedbounds_dataScan0s,
-            IntPtr* filters, IntPtr resultbmp_scan0, int resultwidth, int resultheight, IntPtr rockbmp_scan0, int rockWidth, int rockHeight, int numItems);
+            IntPtr* filters, IntPtr resultbmp_scan0, int resultwidth, int resultheight, IntPtr rockbmp_scan0, int rockWidth, int rockHeight, int numItems, int maxrockwidth, int maxrockheight);
 
         [DllImport("msvcrt.dll", EntryPoint = "memcpy", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr memcpy(IntPtr dest, IntPtr src, int count);
@@ -183,11 +183,12 @@ namespace TerrainGenerator
                 bakedbounds_dataScan0s[i] = (byte*)rockgrid[x, y].bakedbounds_data.Scan0;
             }
 
-
+            int maxrockwidth = rockgrid.Cast<Rock>().Max(r => r.rect_bounds.Width);
+            int maxrockheight = rockgrid.Cast<Rock>().Max(r => r.rect_bounds.Height);
             var result = CudaDraw(centreXs, centreYs, topleftXs, topleftYs, bottomrightXs, bottomrightYs,
                 bakedrectangleLefts, bakedrectangleTops, bakedrectangleWidths, bakedrectangleHeights,
                 (IntPtr*)bakeddistances_dataScan0s, (IntPtr*)bakedbounds_dataScan0s, (IntPtr*)filters, resultbmp.Scan0, resultbmp.Width, resultbmp.Height,
-                rockbmp.Scan0, rockbmp.Width, rockbmp.Height, numItems);
+                rockbmp.Scan0, rockbmp.Width, rockbmp.Height, numItems, maxrockwidth, maxrockheight);
 
             memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
 
