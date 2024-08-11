@@ -21,7 +21,7 @@ namespace TerrainGenerator
         public void OverlayMoss(double density, int noisedepth)
         {
             float* perlin;
-            if (Extensions.HasNvidiaGpu() && false)
+            if (Extensions.HasNvidiaGpu())
             {
                 perlin = GeneratePerlinNoise(width, height, noisedepth);
             }
