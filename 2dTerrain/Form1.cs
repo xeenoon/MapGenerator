@@ -251,6 +251,8 @@ namespace _2dTerrain
         }
         public unsafe void GenerateTiles(object sender, EventArgs e)
         {
+            Stopwatch s = new Stopwatch();
+            s.Start();
             Rock.Setup();
             const int wallwidth = 50;
             const int wallheight = 50;
@@ -272,11 +274,12 @@ namespace _2dTerrain
                     g.DrawImage(grout, new Point(x * grout.Width / tilesize, y * grout.Height / tilesize));
                 }
             }
-
+            s.Stop();
+            long setuptime = s.ElapsedMilliseconds;
+            s.Restart();
             //Create a gridish style pattern of rocks
             Rock[,] rocks = new Rock[wallwidth, wallheight];
-            Stopwatch s = new Stopwatch();
-            s.Start();
+
             for (int y = 0; y < wallheight; ++y)
             {
                 int xoffset = y % 2 == 0 ? 0 : brickwidth / 2;
@@ -289,9 +292,7 @@ namespace _2dTerrain
 
                     Rock rock = new Rock();
                     rock.GenerateShape(rockrect, 20);
-
                     rocks[x, y] = rock;
-
                     int furtherestleft = rock.bounds.Min(p => p.X); //Find the furtherest left point on us
                     xoffset -= furtherestleft; //Modify the offset to make sure we dont intersect
                     int furtherestright = rock.bounds.Max(p => p.X);
@@ -411,7 +412,6 @@ namespace _2dTerrain
             foreach (var rock in rocks)
             {
                 rock.Draw(resultbmp);
-
             }
             result.UnlockBits(resultbmp);
             s.Stop();
@@ -433,7 +433,7 @@ namespace _2dTerrain
             long mossmilis = s.ElapsedMilliseconds;
 
             pictureBox.Invalidate();
-            string times = $"Rock: {rockmilis}\nNormal: {normalmilis}\nMoss: {mossmilis}";
+            string times = $"Setup: {setuptime}\nRock: {rockmilis}\nNormal: {normalmilis}\nMoss: {mossmilis}";
             MessageBox.Show(times);
         }
         public struct Line
