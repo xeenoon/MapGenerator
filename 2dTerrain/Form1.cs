@@ -305,6 +305,7 @@ namespace _2dTerrain
                     }
                     rock.bakedrectangle.X += xoffset;
                     rock.rect_bounds.X += xoffset;
+                    rock.centre.X += xoffset;
 
                     xoffset += furtherestright; //Make the xoffset for the next rock the furtherest right point on this rock
                                                 //Make sure to update after placing the rock
@@ -408,13 +409,15 @@ namespace _2dTerrain
                     }
                     rock.bakedrectangle.Y += yoffset;
                     rock.rect_bounds.Y += yoffset;
+                    rock.centre.Y += yoffset;
                 }
             }
             var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-            foreach (var rock in rocks)
+            Rock.CudaDraw(rocks, wallwidth, wallheight, resultbmp);
+            /*foreach (var rock in rocks)
             {
                 rock.CudaDraw(resultbmp);
-            }
+            }*/
             result.UnlockBits(resultbmp);
             s.Stop();
             long rockmilis = s.ElapsedMilliseconds;

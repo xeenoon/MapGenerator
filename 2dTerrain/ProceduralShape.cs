@@ -16,6 +16,7 @@ namespace TerrainGenerator
     }
     public class ProceduralShape
     {
+        public Point centre;
         public List<Point> bounds = new List<Point>();
         public Rectangle rect_bounds;
 
@@ -123,6 +124,7 @@ namespace TerrainGenerator
             g = Graphics.FromImage(bakedbounds);
             g.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, this.bounds.ToArray().Offset(new Point(-left + max_blenddst, -top + max_blenddst))); //Mark the pixel
             bakedbounds_data = bakedbounds.LockBits(new Rectangle(0, 0, bakeddistances.Width, bakeddistances.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            centre = this.bounds.ToArray().PolygonCentre();
 
         }
         public unsafe int DistanceTo(Point p)

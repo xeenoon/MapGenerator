@@ -127,7 +127,60 @@ namespace TerrainGenerator
         [DllImport("msvcrt.dll", EntryPoint = "memcpy", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr memcpy(IntPtr dest, IntPtr src, int count);
 
+        public static unsafe void CudaDraw(Rock[,] rockgrid, int width, int height, BitmapData resultbmp)
+        {
+            int*[] filters = new int*[width * height];
+            int[] centrexs = new int[width * height];
+            int[] centreys = new int[width * height];
 
+            int[] topleftxs = new int[width * height];
+            int[] topleftys = new int[width * height];
+
+            int[] bottomrightxs = new int[width * height];
+            int[] bottomrightys = new int[width * height];
+
+            int[] bakedrectanglesLefts = new int[width * height];
+            int[] bakedrectanglesTops = new int[width * height];
+            int[] bakedrectangleWidths = new int[width * height];
+            int[] bakedrectangleHeights = new int[width * height];
+
+            byte*[] bakeddistances_dataScan0s = new byte*[width * height];
+            byte*[] bakedbounds_dataScan0s = new byte*[width * height];
+
+
+            for (int i = 0; i < width * height; ++i)
+            {
+                int x = i % width;
+                int y = i / width;
+                var filter = Filter.RandomFilter();
+                filters[i] = filter.GetArry();
+
+
+                centrexs[i] = rockgrid[x, y].centre.X;
+                centreys[i] = rockgrid[x, y].centre.Y;
+
+                topleftxs[i] = rockgrid[x, y].rect_bounds.Left;
+                topleftys[i] = rockgrid[x, y].rect_bounds.Top;
+
+                bottomrightxs[i] = rockgrid[x, y].rect_bounds.Right;
+                bottomrightys[i] = rockgrid[x, y].rect_bounds.Bottom;
+
+                bakedrectanglesLefts[i] = rockgrid[x, y].bakedrectangle.Left;
+                bakedrectanglesTops[i] = rockgrid[x, y].bakedrectangle.Top;
+
+                bakedrectangleWidths[i] = rockgrid[x, y].bakedrectangle.Width;
+                bakedrectangleHeights[i] = rockgrid[x, y].bakedrectangle.Height;
+
+                bakeddistances_dataScan0s[i] = (byte*)rockgrid[x, y].bakeddistances_data.Scan0;
+                bakedbounds_dataScan0s[i] = (byte*)rockgrid[x, y].bakedbounds_data.Scan0;
+            }
+            for (int i = 0; i < width * height; ++i)
+            {
+                byte* result = CudaDraw(centrexs[i], centreys[i], topleftxs[i], topleftys[i], bottomrightxs[i], bottomrightys[i], resultbmp.Scan0, bakedrectanglesLefts[i], bakedrectanglesTops[i], bakedrectangleWidths[i], bakedrectangleHeights[i],
+                (IntPtr)bakeddistances_dataScan0s[i], (IntPtr)bakedbounds_dataScan0s[i], (IntPtr)filters[i], resultbmp.Width, resultbmp.Height, (IntPtr)rockbmp_scan0, rockbmp.Width, rockbmp.Height);
+                memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
+            }
+        }
         public unsafe void CudaDraw(BitmapData resultbmp)
         {
             //Find a bounds around the bounds of the rock
@@ -137,13 +190,9 @@ namespace TerrainGenerator
             Point topleft = new Point(rect_bounds.Left, rect_bounds.Top);
             Point bottomright = new Point(rect_bounds.Right, rect_bounds.Bottom);
 
-
-
-
-            Point rockcentre = bounds.ToArray().PolygonCentre();
             Filter filter = Filter.RandomFilter();
             var filterarry = filter.GetArry();
-            byte* result = CudaDraw(rockcentre.X, rockcentre.Y, topleft.X, topleft.Y, bottomright.X, bottomright.Y, resultbmp.Scan0, bakedrectangle.Left, bakedrectangle.Top, bakedrectangle.Width, bakedrectangle.Height,
+            byte* result = CudaDraw(centre.X, centre.Y, topleft.X, topleft.Y, bottomright.X, bottomright.Y, resultbmp.Scan0, bakedrectangle.Left, bakedrectangle.Top, bakedrectangle.Width, bakedrectangle.Height,
             bakeddistances_data.Scan0, bakedbounds_data.Scan0, (IntPtr)filterarry, resultbmp.Width, resultbmp.Height, (IntPtr)rockbmp_scan0, rockbmp.Width, rockbmp.Height);
 
             memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
