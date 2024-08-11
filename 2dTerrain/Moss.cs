@@ -20,7 +20,16 @@ namespace TerrainGenerator
 
         public void OverlayMoss(double density, int noisedepth)
         {
-            var perlin = GeneratePerlinNoise(width, height, noisedepth);
+            float* perlin;
+            if (Extensions.HasNvidiaGpu() && false)
+            {
+                perlin = GeneratePerlinNoise(width, height, noisedepth);
+            }
+            else
+            {
+                perlin = JaggedArrayToFloatPointer(PerlinNoise.GeneratePerlinNoise(width, height, noisedepth), width * height);
+            }
+
             string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             var mossimage = (Bitmap)Image.FromFile(exePath + "\\images\\mossseam.png");
@@ -36,6 +45,27 @@ namespace TerrainGenerator
                 }
             }
             mossimage.UnlockBits(mossdata);
+            Marshal.FreeHGlobal((IntPtr)perlin);
+        }
+        public static float* JaggedArrayToFloatPointer(float[][] jaggedArray, int length)
+        {
+            // Determine the total length of the flattened array
+            int rows = jaggedArray.Length;
+            int cols = jaggedArray.Length > 0 ? jaggedArray[0].Length : 0;
+
+            // Flatten the jagged array into a single-dimensional array
+            float[] flatArray = new float[length];
+
+            for (int i = 0; i < rows; i++)
+            {
+                Array.Copy(jaggedArray[i], 0, flatArray, i * cols, cols);
+            }
+
+            // Pin the array in memory
+            GCHandle handle = GCHandle.Alloc(flatArray, GCHandleType.Pinned);
+            float* pointer = (float*)handle.AddrOfPinnedObject();
+
+            return pointer;
         }
     }
 }

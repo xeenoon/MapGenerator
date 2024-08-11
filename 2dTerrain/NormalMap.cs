@@ -27,7 +27,14 @@ namespace TerrainGenerator
             var normaldata = normalmap.LockBits(new Rectangle(0, 0, normalmap.Width, normalmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             var normalptr = (byte*)normaldata.Scan0;
 
-            ApplyNormalMap(readdataptr, normalptr, writedataptr, readdata.Width, readdata.Height);
+            if (Extensions.HasNvidiaGpu())
+            {
+                ApplyNormalMap(readdataptr, normalptr, writedataptr, readdata.Width, readdata.Height);
+            }
+            else
+            {
+                ApplyNormalMap(writedataptr, normalptr);
+            }
 
             originalimage.UnlockBits(writedata);
             normalmap.UnlockBits(normaldata);
