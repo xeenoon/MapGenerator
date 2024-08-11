@@ -23,9 +23,45 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += GenerateTiles;
+            generateButton.Click += TestDLL;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
+        }
+        [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr ExtVectorAdd(IntPtr a, IntPtr b);
+
+        [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
+        public unsafe static extern void FreeMemory(int* ptr);
+        public unsafe void TestDLL(object sender, EventArgs e)
+        {
+            int size = 1024;
+            int[] a = new int[size];
+            int[] b = new int[size];
+            for (int i = 0; i < size; i++)
+            {
+                a[i] = i;
+                b[i] = i;
+            }
+
+            IntPtr ptrA = Marshal.AllocHGlobal(size * sizeof(int));
+            IntPtr ptrB = Marshal.AllocHGlobal(size * sizeof(int));
+
+            Marshal.Copy(a, 0, ptrA, size);
+            Marshal.Copy(b, 0, ptrB, size);
+            IntPtr c = ExtVectorAdd(ptrA, ptrB);
+            MessageBox.Show($"C: {c}");
+            string result = "";
+
+            for (int i = 0; i < 10; i++)
+            {
+                result += $"c[{i}] = {((int*)c)[i]}";
+            }
+            MessageBox.Show(result);
+
+            FreeMemory((int*)c);
+            Marshal.FreeHGlobal(ptrA);
+            Marshal.FreeHGlobal(ptrB);
+
         }
         public unsafe void GeneratePuddle(object sender, EventArgs e)
         {

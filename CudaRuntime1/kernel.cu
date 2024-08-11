@@ -3,41 +3,32 @@
 #include <device_launch_parameters.h>
 
 #define SIZE 1024
-__global__ void VectorAdd(int *a, int *b, int *c, int n)
+
+__global__ void VectorAddKernel(int* a, int* b, int* c, int n)
 {
-	int i = threadIdx.x;
-	if(i < n)
-	{
-		c[i] = a[i] + b[i];
-	}
+    int i = threadIdx.x;
+    if (i < n)
+    {
+        c[i] = a[i] + b[i];
+    }
 }
 
-int main()
+extern "C" __declspec(dllexport) int* ExtVectorAdd(int* a, int* b)
 {
-	int* a, * b, * c;
-	cudaMallocManaged(&a, SIZE * sizeof(int));
-	cudaMallocManaged(&b, SIZE * sizeof(int));
-	cudaMallocManaged(&c, SIZE * sizeof(int));
+    int* c;
+    cudaMallocManaged(&c, SIZE * sizeof(int));
 
-	for (int i = 0; i < SIZE; ++i)
-	{
-		a[i] = i;
-		b[i] = i;
-		c[i] = 0;
-	}
+    // Launch the kernel
+    VectorAddKernel <<<1, SIZE>>>(a, b, c, SIZE);
 
-	VectorAdd <<<1, SIZE>>>(a, b, c, SIZE);
+    // Synchronize to ensure the kernel has finished
+    cudaDeviceSynchronize();
 
-	cudaDeviceSynchronize();
+    // Return the result array
+    return c;
+}
 
-	for (int i = 0; i < 10; ++i)
-	{
-		printf("c[%d] = %d\n", i, c[i]);
-	}
-
-	cudaFree(a);
-	cudaFree(b);
-	cudaFree(c);
-
-	return 0;
+extern "C" __declspec(dllexport) void FreeMemory(int* ptr)
+{
+    cudaFree(ptr);
 }
