@@ -1,5 +1,6 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 
 namespace TerrainGenerator
 {
@@ -12,13 +13,28 @@ namespace TerrainGenerator
         }
         public Bitmap normalmap;
         public Bitmap originalimage;
+        [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void ApplyNormalMap(byte* original, byte* normal, byte* output, int width, int height);
         public void ApplyNormalMap()
         {
-            var originaldata = originalimage.LockBits(new Rectangle(0, 0, originalimage.Width, originalimage.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
-            var originalptr = (byte*)originaldata.Scan0;
+            Bitmap readbitmap = (Bitmap)originalimage.Clone();
+            var readdata = readbitmap.LockBits(new Rectangle(0, 0, originalimage.Width, originalimage.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            var readdataptr = (byte*)readdata.Scan0;
+
+            var writedata = originalimage.LockBits(new Rectangle(0, 0, originalimage.Width, originalimage.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            var writedataptr = (byte*)writedata.Scan0;
+
             var normaldata = normalmap.LockBits(new Rectangle(0, 0, normalmap.Width, normalmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             var normalptr = (byte*)normaldata.Scan0;
 
+            ApplyNormalMap(readdataptr, normalptr, writedataptr, readdata.Width, readdata.Height);
+
+            originalimage.UnlockBits(writedata);
+            normalmap.UnlockBits(normaldata);
+            readbitmap.UnlockBits(readdata);
+        }
+        private void ApplyNormalMap(byte* originalptr, byte* normalptr)
+        {
             for (int y = 0; y < originalimage.Height; y++)
             {
                 for (int x = 0; x < originalimage.Width; x++)
@@ -55,9 +71,6 @@ namespace TerrainGenerator
                     originalcolor[0] = b;
                 }
             }
-
-            originalimage.UnlockBits(originaldata);
-            normalmap.UnlockBits(normaldata);
         }
         public static Bitmap GenerateNormalMap(Bitmap bitmap, float intensity)
         {
