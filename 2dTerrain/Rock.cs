@@ -112,9 +112,6 @@ namespace TerrainGenerator
             }
             image.UnlockBits(resultbmp);
             rock.UnlockBits(rockbmp);
-
-            //graphics.FillEllipse(new Pen(Color.Red).Brush, new Rectangle(rockcentre.X - 5, rockcentre.Y - 5, 10, 10));
-
         }
     }
 }
