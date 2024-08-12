@@ -45,7 +45,10 @@ namespace TerrainGenerator
                 }
             }
             mossimage.UnlockBits(mossdata);
-            Marshal.FreeHGlobal((IntPtr)perlin);
+            if (Extensions.HasNvidiaGpu()) //Dont free if we dont have to
+            {
+                Marshal.FreeHGlobal((IntPtr)perlin);
+            }
         }
         public static float* JaggedArrayToFloatPointer(float[][] jaggedArray, int length)
         {
