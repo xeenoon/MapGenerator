@@ -132,81 +132,87 @@ namespace TerrainGenerator
         {
             if (Extensions.HasNvidiaGpu())
             {
-                int numItems = width * height;
-
-                // Allocate memory for the pointers
-                int* centreXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-                int* centreYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-
-                int* topleftXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-                int* topleftYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-
-                int* bottomrightXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-                int* bottomrightYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-
-                int* bakedrectangleLefts = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-                int* bakedrectangleTops = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-                int* bakedrectangleWidths = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-                int* bakedrectangleHeights = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
-
-                // Allocate memory for the byte pointers
-                byte** bakeddistances_dataScan0s = (byte**)Marshal.AllocHGlobal(numItems * sizeof(byte*));
-                byte** bakedbounds_dataScan0s = (byte**)Marshal.AllocHGlobal(numItems * sizeof(byte*));
-
-                int** filters = (int**)Marshal.AllocHGlobal(numItems * sizeof(int*));
-
-                // Populate the allocated memory
-                for (int i = 0; i < numItems; ++i)
+                int groupsize = 2;
+                for (int g = 0; g < groupsize; ++g)
                 {
-                    int x = i % width;
-                    int y = i / width;
+                    int numItems = (width * height) / groupsize;
 
-                    var filter = Filter.RandomFilter();
-                    filters[i] = filter.GetArry();
-                    // Copy filter array data to the GPU; not shown here, assumed to be done elsewhere
+                    // Allocate memory for the pointers
+                    int* centreXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+                    int* centreYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
 
-                    centreXs[i] = rockgrid[x, y].centre.X;
-                    centreYs[i] = rockgrid[x, y].centre.Y;
+                    int* topleftXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+                    int* topleftYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
 
-                    topleftXs[i] = rockgrid[x, y].bakedrectangle.Left;
-                    topleftYs[i] = rockgrid[x, y].bakedrectangle.Top;
+                    int* bottomrightXs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+                    int* bottomrightYs = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
 
-                    bottomrightXs[i] = rockgrid[x, y].bakedrectangle.Right;
-                    bottomrightYs[i] = rockgrid[x, y].bakedrectangle.Bottom;
+                    int* bakedrectangleLefts = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+                    int* bakedrectangleTops = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+                    int* bakedrectangleWidths = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
+                    int* bakedrectangleHeights = (int*)Marshal.AllocHGlobal(numItems * sizeof(int));
 
-                    bakedrectangleLefts[i] = rockgrid[x, y].bakedrectangle.Left;
-                    bakedrectangleTops[i] = rockgrid[x, y].bakedrectangle.Top;
+                    // Allocate memory for the byte pointers
+                    byte** bakeddistances_dataScan0s = (byte**)Marshal.AllocHGlobal(numItems * sizeof(byte*));
+                    byte** bakedbounds_dataScan0s = (byte**)Marshal.AllocHGlobal(numItems * sizeof(byte*));
 
-                    bakedrectangleWidths[i] = rockgrid[x, y].bakedrectangle.Width;
-                    bakedrectangleHeights[i] = rockgrid[x, y].bakedrectangle.Height;
+                    int** filters = (int**)Marshal.AllocHGlobal(numItems * sizeof(int*));
 
-                    bakeddistances_dataScan0s[i] = (byte*)rockgrid[x, y].bakeddistances_data.Scan0;
-                    bakedbounds_dataScan0s[i] = (byte*)rockgrid[x, y].bakedbounds_data.Scan0;
+                    // Populate the allocated memory
+                    int idx = 0;
+                    for (int i = g; i < numItems * groupsize; i += groupsize)
+                    {
+                        int x = i % width;
+                        int y = i / width;
+
+                        var filter = Filter.RandomFilter();
+                        filters[idx] = filter.GetArry();
+                        // Copy filter array data to the GPU; not shown here, assumed to be done elsewhere
+
+                        centreXs[idx] = rockgrid[x, y].centre.X;
+                        centreYs[idx] = rockgrid[x, y].centre.Y;
+
+                        topleftXs[idx] = rockgrid[x, y].bakedrectangle.Left;
+                        topleftYs[idx] = rockgrid[x, y].bakedrectangle.Top;
+
+                        bottomrightXs[idx] = rockgrid[x, y].bakedrectangle.Right;
+                        bottomrightYs[idx] = rockgrid[x, y].bakedrectangle.Bottom;
+
+                        bakedrectangleLefts[idx] = rockgrid[x, y].bakedrectangle.Left;
+                        bakedrectangleTops[idx] = rockgrid[x, y].bakedrectangle.Top;
+
+                        bakedrectangleWidths[idx] = rockgrid[x, y].bakedrectangle.Width;
+                        bakedrectangleHeights[idx] = rockgrid[x, y].bakedrectangle.Height;
+
+                        bakeddistances_dataScan0s[idx] = (byte*)rockgrid[x, y].bakeddistances_data.Scan0;
+                        bakedbounds_dataScan0s[idx] = (byte*)rockgrid[x, y].bakedbounds_data.Scan0;
+                        ++idx;
+                    }
+
+                    int maxrockwidth = rockgrid.Cast<Rock>().Max(r => r.bakedrectangle.Width);
+                    int maxrockheight = rockgrid.Cast<Rock>().Max(r => r.bakedrectangle.Height);
+                    var result = CudaDraw(centreXs, centreYs, topleftXs, topleftYs, bottomrightXs, bottomrightYs,
+                        bakedrectangleLefts, bakedrectangleTops, bakedrectangleWidths, bakedrectangleHeights,
+                        (IntPtr*)bakeddistances_dataScan0s, (IntPtr*)bakedbounds_dataScan0s, (IntPtr*)filters, resultbmp.Scan0, resultbmp.Width, resultbmp.Height,
+                        rockbmp.Scan0, rockbmp.Width, rockbmp.Height, numItems, maxrockwidth, maxrockheight);
+
+                    memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
+
+
+                    // Clean up allocated memory
+                    Marshal.FreeHGlobal((IntPtr)centreXs);
+                    Marshal.FreeHGlobal((IntPtr)centreYs);
+                    Marshal.FreeHGlobal((IntPtr)topleftXs);
+                    Marshal.FreeHGlobal((IntPtr)topleftYs);
+                    Marshal.FreeHGlobal((IntPtr)bottomrightXs);
+                    Marshal.FreeHGlobal((IntPtr)bottomrightYs);
+                    Marshal.FreeHGlobal((IntPtr)bakedrectangleLefts);
+                    Marshal.FreeHGlobal((IntPtr)bakedrectangleTops);
+                    Marshal.FreeHGlobal((IntPtr)bakedrectangleWidths);
+                    Marshal.FreeHGlobal((IntPtr)bakedrectangleHeights);
+                    Marshal.FreeHGlobal((IntPtr)bakeddistances_dataScan0s);
+                    Marshal.FreeHGlobal((IntPtr)bakedbounds_dataScan0s);
                 }
-
-                int maxrockwidth = rockgrid.Cast<Rock>().Max(r => r.bakedrectangle.Width);
-                int maxrockheight = rockgrid.Cast<Rock>().Max(r => r.bakedrectangle.Height);
-                var result = CudaDraw(centreXs, centreYs, topleftXs, topleftYs, bottomrightXs, bottomrightYs,
-                    bakedrectangleLefts, bakedrectangleTops, bakedrectangleWidths, bakedrectangleHeights,
-                    (IntPtr*)bakeddistances_dataScan0s, (IntPtr*)bakedbounds_dataScan0s, (IntPtr*)filters, resultbmp.Scan0, resultbmp.Width, resultbmp.Height,
-                    rockbmp.Scan0, rockbmp.Width, rockbmp.Height, numItems, maxrockwidth, maxrockheight);
-
-                memcpy(resultbmp.Scan0, (nint)result, resultbmp.Stride * resultbmp.Height);
-
-
-                // Clean up allocated memory
-                Marshal.FreeHGlobal((IntPtr)centreXs);
-                Marshal.FreeHGlobal((IntPtr)centreYs);
-                Marshal.FreeHGlobal((IntPtr)topleftXs);
-                Marshal.FreeHGlobal((IntPtr)topleftYs);
-                Marshal.FreeHGlobal((IntPtr)bottomrightXs);
-                Marshal.FreeHGlobal((IntPtr)bottomrightYs);
-                Marshal.FreeHGlobal((IntPtr)bakedrectangleLefts);
-                Marshal.FreeHGlobal((IntPtr)bakedrectangleTops);
-                Marshal.FreeHGlobal((IntPtr)bakedrectangleWidths);
-                Marshal.FreeHGlobal((IntPtr)bakedrectangleHeights);
-                Marshal.FreeHGlobal((IntPtr)bakeddistances_dataScan0s);
-                Marshal.FreeHGlobal((IntPtr)bakedbounds_dataScan0s);
             }
             else
             {

@@ -237,8 +237,8 @@ namespace _2dTerrain
             Stopwatch s = new Stopwatch();
             s.Start();
             Rock.Setup();
-            const int wallwidth = 10;
-            const int wallheight = 10;
+            const int wallwidth = 50;
+            const int wallheight = 30;
             const int brickwidth = 50;
             const int brickheight = 50;
             const int rockdist = 3;
@@ -441,15 +441,15 @@ namespace _2dTerrain
             s.Restart();
 
             //Create the normal map
-            //NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 1f), result);
-            //normalMap.ApplyNormalMap();
+            NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 1f), result);
+            normalMap.ApplyNormalMap();
             s.Stop();
             long normalmilis = s.ElapsedMilliseconds;
             s.Restart();
             //Draw the moss overlay
             var mossbitmapdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Moss moss = new Moss(mossbitmapdata);
-            //moss.OverlayMoss(0.35, 7);
+            moss.OverlayMoss(0.35, 7);
             result.UnlockBits(mossbitmapdata);
 
             s.Stop();

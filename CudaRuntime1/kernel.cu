@@ -51,6 +51,7 @@ __global__ void CudaDrawKernel(
         return;
 
     int resultIndex = x * BYTES_PER_PIXEL + y * resultwidth * BYTES_PER_PIXEL;
+    int drawidx = x + y * resultwidth;
     bool inpolygon = false;
     double distance = -1.0;
 
@@ -66,11 +67,11 @@ __global__ void CudaDrawKernel(
         }
         distance = bakeddistances_dataScan0s[index][checkidx];
     }
+    // drawnpixels[drawidx] = 1;
 
     if (inpolygon)
     {
         int rockIndex = (x % rockWidth) * BYTES_PER_PIXEL + (y % rockHeight) * rockWidth * BYTES_PER_PIXEL;
-
         for (int i = 0; i < 3; ++i)
         {
             resultbmp_scan0[resultIndex + i] = min(255, filters[index][i] + rockbmp_scan0[rockIndex + i]);
