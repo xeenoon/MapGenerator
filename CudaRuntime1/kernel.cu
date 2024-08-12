@@ -60,7 +60,7 @@ __global__ void CudaDrawKernel(
 
     if (adjustedX >= 0 && adjustedY >= 0 && adjustedX < bakedrectangleWidths[index] && adjustedY < bakedrectangleHeights[index])
     {
-        if (bakedbounds_dataScan0s[index][checkidx + 2] == 255)
+        if (bakedbounds_dataScan0s[index][checkidx + 2])
         {
             inpolygon = true;
         }
@@ -70,40 +70,21 @@ __global__ void CudaDrawKernel(
     if (inpolygon)
     {
         int rockIndex = (x % rockWidth) * BYTES_PER_PIXEL + (y % rockHeight) * rockWidth * BYTES_PER_PIXEL;
-        for (int i = 0; i < BYTES_PER_PIXEL; ++i)
-        {
-            resultbmp_scan0[resultIndex + i] = rockbmp_scan0[rockIndex + i];
-        }
-
-        int xdist = rockcentreXs[index] - x;
-        int ydist = rockcentreYs[index] - y;
-        double centredst = sqrt((double)(xdist * xdist + ydist * ydist));
-
-        if (centredst <= shinedst)
-        {
-            double shadowFactor = 1 + ((1.0 / 4.0) * (1 - (centredst / shinedst)));
-            for (int i = 0; i < 3; ++i)
-            {
-                resultbmp_scan0[resultIndex + i] = min(resultbmp_scan0[resultIndex + i] * shadowFactor, 255.0);
-            }
-        }
 
         for (int i = 0; i < 3; ++i)
         {
-            resultbmp_scan0[resultIndex + i] = min(255, filters[index][i] + resultbmp_scan0[resultIndex + i]);
+            resultbmp_scan0[resultIndex + i] = min(255, filters[index][i] + rockbmp_scan0[rockIndex + i]);
         }
-        resultbmp_scan0[resultIndex + 3] = 255;
     }
-
-    if (distance <= shadowdst && distance != -1 && (distance == 0 ? inpolygon : true))
+    if (distance <= shadowdst && distance >= 0 && (distance == 0 ? inpolygon : true))
     {
         double shadowFactor = distance / (shadowdst * 3) + (1 - (1.0 / 3.0));
         for (int i = 0; i < 3; ++i)
         {
-            resultbmp_scan0[resultIndex + i] = (unsigned char)(resultbmp_scan0[resultIndex + i] * shadowFactor);
+            resultbmp_scan0[resultIndex + i] = min((uint8_t)(resultbmp_scan0[resultIndex + i] * shadowFactor), 255);
         }
-        resultbmp_scan0[resultIndex + 3] = 255;
     }
+    resultbmp_scan0[resultIndex + 3] = 255;
 }
 
 extern "C" __declspec(dllexport) uint8_t *CudaDraw(
@@ -190,7 +171,7 @@ extern "C" __declspec(dllexport) uint8_t *CudaDraw(
     cudaMalloc(&d_output, imageSize);
     cudaMemcpy(d_output, resultbmp_scan0, imageSize, cudaMemcpyHostToDevice); // Copy the old bitmap
 
-    dim3 blockSize(16, 16);
+    dim3 blockSize(32, 32);
     dim3 gridSize((maxrockwidth + blockSize.x - 1) / blockSize.x, (maxrockheight + blockSize.y - 1) / blockSize.y, numItems);
 
     CudaDrawKernel<<<gridSize, blockSize>>>(

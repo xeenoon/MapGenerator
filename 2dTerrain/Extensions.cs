@@ -7,6 +7,7 @@ namespace TerrainGenerator
     {
         public static bool HasNvidiaGpu()
         {
+            return true;
             try
             {
                 // Create a ManagementObjectSearcher object to query for GPU devices

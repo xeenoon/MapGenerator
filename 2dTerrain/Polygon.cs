@@ -35,6 +35,19 @@ namespace TerrainGenerator
                 indices[idx + 2] = i;
             }
         }
+        public Polygon(Point[] points, int* indices)
+        {
+            this.points = points;
+            len_indices = 3 * (points.Length - 2);
+
+            this.indices = (int*)Marshal.AllocHGlobal(len_indices * sizeof(int));
+
+            Buffer.MemoryCopy(indices, this.indices, len_indices * sizeof(int), len_indices * sizeof(int));
+        }
+        public Polygon Scale(int n, Point staticoffset)
+        {
+            return new Polygon(points.ScalePolygon(n, staticoffset), indices);
+        }
         public void Draw(byte* color, BitmapData bmp)
         {
             int* xs = (int*)Marshal.AllocHGlobal(points.Length * sizeof(int));

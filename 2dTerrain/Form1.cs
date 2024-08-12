@@ -3,6 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms.VisualStyles;
 using TerrainGenerator;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace _2dTerrain
 {
@@ -23,7 +24,7 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += TestDLL;
+            generateButton.Click += GenerateTiles;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
@@ -236,11 +237,11 @@ namespace _2dTerrain
             Stopwatch s = new Stopwatch();
             s.Start();
             Rock.Setup();
-            const int wallwidth = 50;
-            const int wallheight = 50;
+            const int wallwidth = 10;
+            const int wallheight = 10;
             const int brickwidth = 50;
             const int brickheight = 50;
-            const int rockdist = 2;
+            const int rockdist = 3;
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
@@ -264,21 +265,37 @@ namespace _2dTerrain
             //Create a gridish style pattern of rocks
             Rock[,] rocks = new Rock[wallwidth, wallheight];
 
+            ConcurrentBag<Rock> paralellrocks = new ConcurrentBag<Rock>();
+            const int rocksperthread = 5;
+            Parallel.For(0, wallwidth * wallheight, i =>
+            {
+                Random r = new Random();
+                double scalingdifference = 1.8;
+
+                var rockrect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference))),
+                (int)(brickheight * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference)))); //Create a rock at 0,0
+
+                Rock rock = new Rock();
+                rock.GenerateShape(rockrect, 20);
+                paralellrocks.Add(rock);
+            });
+
+            List<Rock> resultrocks = paralellrocks.ToList();
+            s.Stop();
+            long rockgeneration = s.ElapsedMilliseconds;
+            s.Restart();
+
             for (int y = 0; y < wallheight; ++y)
             {
                 int xoffset = y % 2 == 0 ? 0 : brickwidth / 2;
                 for (int x = 0; x < wallwidth; ++x)
                 {
-                    Random r = new Random();
-                    double scalingdifference = 1.8;
-                    var rockrect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference))),
-                    (int)(brickheight * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference)))); //Create a rock at 0,0
-
-                    Rock rock = new Rock();
-                    rock.GenerateShape(rockrect, 20);
+                    var rock = resultrocks[x + y * wallwidth];
                     rocks[x, y] = rock;
+
                     int furtherestleft = rock.bounds.Min(p => p.X); //Find the furtherest left point on us
                     xoffset -= furtherestleft; //Modify the offset to make sure we dont intersect
+                    xoffset += rockdist;
                     int furtherestright = rock.bounds.Max(p => p.X);
                     for (int i = 0; i < rock.bounds.Count(); ++i)
                     {
@@ -303,8 +320,26 @@ namespace _2dTerrain
                         // Check all rocks above the current rock
                         for (int i = 0; i < wallwidth; i++)
                         {
+                            if (rocksAbove.Count() >= 2)
+                            {
+                                break; //Assume there wont be more than 2 rocks above
+                            }
                             int j = y - 1;
-                            Rock aboveRock = rocks[i, j];
+                            int xmod;
+                            if (i % 2 == 0)
+                            {
+                                xmod = i / 2; //Look for fowards rocks
+                            }
+                            else
+                            {
+                                xmod = -i / 2; //Look for backwards rocks
+                            }
+                            if (x + xmod < 0 || x + xmod >= wallwidth)
+                            {
+                                continue;
+
+                            }
+                            Rock aboveRock = rocks[x + xmod, j];
 
                             if (aboveRock != null)
                             {
@@ -380,7 +415,7 @@ namespace _2dTerrain
                         int lowestdistance = distances.OrderBy(d => d).FirstOrDefault();
                         //MessageBox.Show(lowestdistance.ToString());
                         starty -= lowestdistance;
-                        starty += 10;
+                        starty += rockdist;
                         yoffset = starty;
                     }
 
@@ -394,30 +429,35 @@ namespace _2dTerrain
                     rock.centre.Y += yoffset;
                 }
             }
+            s.Stop();
+            long rockmove = s.ElapsedMilliseconds;
+            s.Restart();
+
             var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Rock.CudaDraw(rocks, wallwidth, wallheight, resultbmp);
-
             result.UnlockBits(resultbmp);
             s.Stop();
-            long rockmilis = s.ElapsedMilliseconds;
+            long rockdraw = s.ElapsedMilliseconds;
             s.Restart();
+
             //Create the normal map
-            NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 1f), result);
-            normalMap.ApplyNormalMap();
+            //NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 1f), result);
+            //normalMap.ApplyNormalMap();
             s.Stop();
             long normalmilis = s.ElapsedMilliseconds;
             s.Restart();
             //Draw the moss overlay
             var mossbitmapdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Moss moss = new Moss(mossbitmapdata);
-            moss.OverlayMoss(0.35, 7);
+            //moss.OverlayMoss(0.35, 7);
             result.UnlockBits(mossbitmapdata);
 
             s.Stop();
             long mossmilis = s.ElapsedMilliseconds;
 
             pictureBox.Invalidate();
-            string times = $"Setup: {setuptime}\nRock: {rockmilis}\nNormal: {normalmilis}\nMoss: {mossmilis}";
+            long totaltime = setuptime + rockgeneration + rockmove + rockdraw + normalmilis + mossmilis;
+            string times = $"Setup: {setuptime}\nRock gen: {rockgeneration}\nRock movement: {rockmove}\nRock drawing: {rockdraw}\nNormal: {normalmilis}\nMoss: {mossmilis}\nTotal: {totaltime}";
             MessageBox.Show(times);
         }
         public struct Line

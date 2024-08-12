@@ -168,11 +168,11 @@ namespace TerrainGenerator
                     centreXs[i] = rockgrid[x, y].centre.X;
                     centreYs[i] = rockgrid[x, y].centre.Y;
 
-                    topleftXs[i] = rockgrid[x, y].rect_bounds.Left;
-                    topleftYs[i] = rockgrid[x, y].rect_bounds.Top;
+                    topleftXs[i] = rockgrid[x, y].bakedrectangle.Left;
+                    topleftYs[i] = rockgrid[x, y].bakedrectangle.Top;
 
-                    bottomrightXs[i] = rockgrid[x, y].rect_bounds.Right;
-                    bottomrightYs[i] = rockgrid[x, y].rect_bounds.Bottom;
+                    bottomrightXs[i] = rockgrid[x, y].bakedrectangle.Right;
+                    bottomrightYs[i] = rockgrid[x, y].bakedrectangle.Bottom;
 
                     bakedrectangleLefts[i] = rockgrid[x, y].bakedrectangle.Left;
                     bakedrectangleTops[i] = rockgrid[x, y].bakedrectangle.Top;
@@ -184,8 +184,8 @@ namespace TerrainGenerator
                     bakedbounds_dataScan0s[i] = (byte*)rockgrid[x, y].bakedbounds_data.Scan0;
                 }
 
-                int maxrockwidth = rockgrid.Cast<Rock>().Max(r => r.rect_bounds.Width);
-                int maxrockheight = rockgrid.Cast<Rock>().Max(r => r.rect_bounds.Height);
+                int maxrockwidth = rockgrid.Cast<Rock>().Max(r => r.bakedrectangle.Width);
+                int maxrockheight = rockgrid.Cast<Rock>().Max(r => r.bakedrectangle.Height);
                 var result = CudaDraw(centreXs, centreYs, topleftXs, topleftYs, bottomrightXs, bottomrightYs,
                     bakedrectangleLefts, bakedrectangleTops, bakedrectangleWidths, bakedrectangleHeights,
                     (IntPtr*)bakeddistances_dataScan0s, (IntPtr*)bakedbounds_dataScan0s, (IntPtr*)filters, resultbmp.Scan0, resultbmp.Width, resultbmp.Height,
