@@ -23,7 +23,7 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += GenerateTiles;
+            generateButton.Click += TestDLL;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
@@ -35,40 +35,18 @@ namespace _2dTerrain
         public unsafe static extern void FreeMemory(IntPtr ptr);
         public unsafe void TestDLL(object sender, EventArgs e)
         {
-            int size = 1024;
-            int[] a = new int[size];
-            int[] b = new int[size];
-            for (int i = 0; i < size; i++)
-            {
-                a[i] = i;
-                b[i] = i;
-            }
+            Rock rock = new Rock();
+            rock.GenerateShape(new Rectangle(200, 200, 400, 400), 20);
+            Point[] shape = rock.bounds.ToArray();
+            Polygon polygon = new Polygon(shape);
+            result = new Bitmap(Width, Height);
+            var bmpdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            polygon.Draw(Color.FromArgb(255, 255, 0, 0), bmpdata);
+            result.UnlockBits(bmpdata);
+            Graphics g = Graphics.FromImage(result);
+            g.DrawPolygon(new Pen(Color.Black, 5), shape);
 
-            IntPtr ptrA = Marshal.AllocHGlobal(size * sizeof(int));
-            IntPtr ptrB = Marshal.AllocHGlobal(size * sizeof(int));
-
-            Marshal.Copy(a, 0, ptrA, size);
-            Marshal.Copy(b, 0, ptrB, size);
-
-            IntPtr c = ExtVectorAdd(ptrA, ptrB, size);
-            if (c == IntPtr.Zero)
-            {
-                MessageBox.Show("Failed to allocate memory on GPU.");
-                return;
-            }
-
-            string result = "";
-            for (int i = 0; i < 10; i++)
-            {
-                int value = Marshal.ReadInt32(c + i * sizeof(int));
-                result += $"c[{i}] = {value}\n";
-            }
-            MessageBox.Show(result);
-
-            FreeMemory(c);
-            Marshal.FreeHGlobal(ptrA);
-            Marshal.FreeHGlobal(ptrB);
-
+            pictureBox.Invalidate();
         }
         public unsafe void GeneratePuddle(object sender, EventArgs e)
         {
