@@ -3,35 +3,17 @@
 #include <cmath>
 
 // Define the size of the output bitmap
-__device__ bool isPointInTriangle(int x, int y, int x0, int y0, int x1, int y1, int x2, int y2)
+__device__ bool isPointInTriangle(int x, int y, int ax, int ay, int bx, int by, int cx, int cy)
 {
-    // Calculate vectors
-    int v0x = x2 - x0;
-    int v0y = y2 - y0;
-    int v1x = x1 - x0;
-    int v1y = y1 - y0;
-    int v2x = x - x0;
-    int v2y = y - y0;
+    // Segment A to B
+    double side_1 = (x - bx) * (ay - by) - (ax - bx) * (y - by);
+    // Segment B to C
+    double side_2 = (x - cx) * (by - cy) - (bx - cx) * (y - cy);
+    // Segment C to A
+    double side_3 = (x - ax) * (cy - ay) - (cx - ax) * (y - ay);
 
-    // Calculate dot products
-    int dot00 = v0x * v0x + v0y * v0y;
-    int dot01 = v0x * v1x + v0y * v1y;
-    int dot02 = v0x * v2x + v0y * v2y;
-    int dot11 = v1x * v1x + v1y * v1y;
-    int dot12 = v1x * v2x + v1y * v2y;
-
-    // Calculate barycentric coordinates
-    int denom = dot00 * dot11 - dot01 * dot01;
-    if (denom == 0)
-    {
-        return false; // Triangle is degenerate
-    }
-    float invDenom = 1.0f / denom;
-    float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-    // Check if point is in triangle
-    return (u >= 0) && (v >= 0) && (u + v <= 1);
+    // All the signs must be positive or all negative
+    return (side_1 < 0.0) == (side_2 < 0.0) && (side_2 < 0.0) == (side_3 < 0.0);
 }
 
 __device__ void rasterizeTriangle(int x0, int y0, int x1, int y1, int x2, int y2, unsigned char *color, uint8_t *bitmap, int width, int height)

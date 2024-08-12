@@ -42,8 +42,12 @@ namespace _2dTerrain
             result = new Bitmap(Width, Height);
             var bmpdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
             polygon.Draw(Color.FromArgb(255, 255, 0, 0), bmpdata);
+
             result.UnlockBits(bmpdata);
             Graphics g = Graphics.FromImage(result);
+            polygon.Move(new Point(600, 0));
+            polygon.DebugDraw(g);
+            g.DrawPolygon(new Pen(Color.Black, 5), polygon.points);
             g.DrawPolygon(new Pen(Color.Black, 5), shape);
 
             pictureBox.Invalidate();

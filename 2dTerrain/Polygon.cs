@@ -7,6 +7,7 @@ namespace TerrainGenerator
     {
         public Point[] points;
         private int* indices;
+        private int len_indices;
 
 
         [DllImport("polygon.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -19,17 +20,19 @@ namespace TerrainGenerator
             }
             this.points = points;
 
-            int vertexstart = 0;
-            indices = (int*)Marshal.AllocHGlobal(3 * (points.Length - 2) * sizeof(int));
+            len_indices = 3 * (points.Length - 2);
+            indices = (int*)Marshal.AllocHGlobal(len_indices * sizeof(int));
 
             for (int i = 2; i < points.Length; ++i)
             {
                 int idx = (i - 2) * 3;
+                //Imagine a line between p[0] and p[i]
+                //Check if it intersects with any other lines
 
                 //Add the triangle to the list
-                indices[idx] = vertexstart;
-                indices[idx + 1] = vertexstart + (i - 1);
-                indices[idx + 2] = vertexstart + i;
+                indices[idx] = 0;
+                indices[idx + 1] = i - 1;
+                indices[idx + 2] = i;
             }
         }
         public void Draw(byte* color, BitmapData bmp)
@@ -57,7 +60,20 @@ namespace TerrainGenerator
             Draw(bytecolor, bmp);
             Marshal.FreeHGlobal((IntPtr)bytecolor);
         }
-
+        public void DebugDraw(Graphics g)
+        {
+            Random r = new Random();
+            for (int i = 0; i < (len_indices / 3); ++i)
+            {
+                Point[] todraw = [points[indices[i * 3]], points[indices[i * 3 + 1]], points[indices[i * 3 + 2]]];
+                Color randomcolor = Color.FromArgb(255, r.Next(0, 255), r.Next(0, 255), r.Next(0, 255));
+                g.FillPolygon(new Pen(randomcolor).Brush, todraw);
+            }
+        }
+        public void Move(Point p)
+        {
+            points = points.Offset(p);
+        }
         public void Dispose()
         {
             Marshal.FreeHGlobal((IntPtr)indices);
