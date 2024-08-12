@@ -3,6 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms.VisualStyles;
 using TerrainGenerator;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace _2dTerrain
 {
@@ -26,6 +27,31 @@ namespace _2dTerrain
             generateButton.Click += GenerateTiles;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
+            Rock.Setup();
+        }
+        [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr ExtVectorAdd(IntPtr a, IntPtr b, int n);
+
+        [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
+        public unsafe static extern void FreeMemory(IntPtr ptr);
+        public unsafe void TestDLL(object sender, EventArgs e)
+        {
+            Rock rock = new Rock();
+            rock.GenerateShape(new Rectangle(200, 200, 400, 400), 20);
+            Point[] shape = rock.bounds.ToArray();
+            Polygon polygon = new Polygon(shape);
+            result = new Bitmap(Width, Height);
+            var bmpdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            polygon.Draw(Color.FromArgb(255, 255, 0, 0), bmpdata);
+
+            result.UnlockBits(bmpdata);
+            Graphics g = Graphics.FromImage(result);
+            polygon.Move(new Point(600, 0));
+            polygon.DebugDraw(g);
+            g.DrawPolygon(new Pen(Color.Black, 5), polygon.points);
+            g.DrawPolygon(new Pen(Color.Black, 5), shape);
+
+            pictureBox.Invalidate();
         }
         public unsafe void GeneratePuddle(object sender, EventArgs e)
         {
@@ -182,7 +208,7 @@ namespace _2dTerrain
                     {
                         continue;
                     }
-                    rock.Draw(result);
+                    //rock.Draw(result);
                     //g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
                 }
             }
@@ -208,14 +234,18 @@ namespace _2dTerrain
         }
         public unsafe void GenerateTiles(object sender, EventArgs e)
         {
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            Rock.Setup();
             const int wallwidth = 50;
-            const int wallheight = 50;
+            const int wallheight = 30;
             const int brickwidth = 50;
             const int brickheight = 50;
-            const int rockdist = 2;
+            const int rockdist = 3;
 
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
+
 
             string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
@@ -229,27 +259,43 @@ namespace _2dTerrain
                 }
             }
 
+            s.Stop();
+            long setuptime = s.ElapsedMilliseconds;
+            s.Restart();
             //Create a gridish style pattern of rocks
             Rock[,] rocks = new Rock[wallwidth, wallheight];
-            Stopwatch s = new Stopwatch();
-            s.Start();
+
+            ConcurrentBag<Rock> paralellrocks = new ConcurrentBag<Rock>();
+            const int rocksperthread = 5;
+            Parallel.For(0, wallwidth * wallheight, i =>
+            {
+                Random r = new Random();
+                double scalingdifference = 1.8;
+
+                var rockrect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference))),
+                (int)(brickheight * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference)))); //Create a rock at 0,0
+
+                Rock rock = new Rock();
+                rock.GenerateShape(rockrect, 20);
+                paralellrocks.Add(rock);
+            });
+
+            List<Rock> resultrocks = paralellrocks.ToList();
+            s.Stop();
+            long rockgeneration = s.ElapsedMilliseconds;
+            s.Restart();
+
             for (int y = 0; y < wallheight; ++y)
             {
                 int xoffset = y % 2 == 0 ? 0 : brickwidth / 2;
                 for (int x = 0; x < wallwidth; ++x)
                 {
-                    Random r = new Random();
-                    double scalingdifference = 1.8;
-                    var rockrect = new Rectangle(0, 0, (int)(brickwidth * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference))),
-                    (int)(brickheight * (r.NextDouble() / scalingdifference + (1 - 1 / scalingdifference)))); //Create a rock at 0,0
-
-                    Rock rock = new Rock();
-                    rock.GenerateShape(rockrect, 20);
-
+                    var rock = resultrocks[x + y * wallwidth];
                     rocks[x, y] = rock;
 
                     int furtherestleft = rock.bounds.Min(p => p.X); //Find the furtherest left point on us
                     xoffset -= furtherestleft; //Modify the offset to make sure we dont intersect
+                    xoffset += rockdist;
                     int furtherestright = rock.bounds.Max(p => p.X);
                     for (int i = 0; i < rock.bounds.Count(); ++i)
                     {
@@ -257,6 +303,8 @@ namespace _2dTerrain
                         rock.bounds[i] = new Point(point.X + xoffset, point.Y); //Apply offset
                     }
                     rock.bakedrectangle.X += xoffset;
+                    rock.rect_bounds.X += xoffset;
+                    rock.centre.X += xoffset;
 
                     xoffset += furtherestright; //Make the xoffset for the next rock the furtherest right point on this rock
                                                 //Make sure to update after placing the rock
@@ -272,8 +320,26 @@ namespace _2dTerrain
                         // Check all rocks above the current rock
                         for (int i = 0; i < wallwidth; i++)
                         {
+                            if (rocksAbove.Count() >= 2)
+                            {
+                                break; //Assume there wont be more than 2 rocks above
+                            }
                             int j = y - 1;
-                            Rock aboveRock = rocks[i, j];
+                            int xmod;
+                            if (i % 2 == 0)
+                            {
+                                xmod = i / 2; //Look for fowards rocks
+                            }
+                            else
+                            {
+                                xmod = -i / 2; //Look for backwards rocks
+                            }
+                            if (x + xmod < 0 || x + xmod >= wallwidth)
+                            {
+                                continue;
+
+                            }
+                            Rock aboveRock = rocks[x + xmod, j];
 
                             if (aboveRock != null)
                             {
@@ -349,7 +415,7 @@ namespace _2dTerrain
                         int lowestdistance = distances.OrderBy(d => d).FirstOrDefault();
                         //MessageBox.Show(lowestdistance.ToString());
                         starty -= lowestdistance;
-                        starty += 10;
+                        starty += rockdist;
                         yoffset = starty;
                     }
 
@@ -359,24 +425,40 @@ namespace _2dTerrain
                         rock.bounds[i] = new Point(point.X, point.Y + yoffset); //Apply offset
                     }
                     rock.bakedrectangle.Y += yoffset;
-                    rock.Draw(result);
-                    //g.DrawRectangle(new Pen(Color.Red), rock.bakedrectangle);
-                    //g.FillPolygon(new Pen(Color.DarkGray).Brush, rock.bounds.ToArray()); //Draw rock
+                    rock.rect_bounds.Y += yoffset;
+                    rock.centre.Y += yoffset;
                 }
             }
+            s.Stop();
+            long rockmove = s.ElapsedMilliseconds;
+            s.Restart();
+
+            var resultbmp = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            Rock.CudaDraw(rocks, wallwidth, wallheight, resultbmp);
+            result.UnlockBits(resultbmp);
+            s.Stop();
+            long rockdraw = s.ElapsedMilliseconds;
+            s.Restart();
+
             //Create the normal map
             NormalMap normalMap = new NormalMap(NormalMap.GenerateNormalMap(result, 1f), result);
             normalMap.ApplyNormalMap();
-
+            s.Stop();
+            long normalmilis = s.ElapsedMilliseconds;
+            s.Restart();
             //Draw the moss overlay
             var mossbitmapdata = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Moss moss = new Moss(mossbitmapdata);
             moss.OverlayMoss(0.35, 7);
             result.UnlockBits(mossbitmapdata);
 
-            pictureBox.Invalidate();
             s.Stop();
-            MessageBox.Show("Total time: " + s.ElapsedMilliseconds.ToString());
+            long mossmilis = s.ElapsedMilliseconds;
+
+            pictureBox.Invalidate();
+            long totaltime = setuptime + rockgeneration + rockmove + rockdraw + normalmilis + mossmilis;
+            string times = $"Setup: {setuptime}\nRock gen: {rockgeneration}\nRock movement: {rockmove}\nRock drawing: {rockdraw}\nNormal: {normalmilis}\nMoss: {mossmilis}\nTotal: {totaltime}";
+            MessageBox.Show(times);
         }
         public struct Line
         {

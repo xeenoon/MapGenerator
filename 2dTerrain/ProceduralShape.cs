@@ -16,6 +16,7 @@ namespace TerrainGenerator
     }
     public class ProceduralShape
     {
+        public Point centre;
         public List<Point> bounds = new List<Point>();
         public Rectangle rect_bounds;
 
@@ -23,6 +24,8 @@ namespace TerrainGenerator
         public List<Point> inner_bounds = new List<Point>();
         public Bitmap bakeddistances;
         public BitmapData bakeddistances_data;
+        public Bitmap bakedbounds;
+        public BitmapData bakedbounds_data;
 
         public Rectangle bakedrectangle;
         internal const int blenddst = 20;
@@ -96,10 +99,12 @@ namespace TerrainGenerator
             int width = this.bounds.Max(p => p.X) - left;
             int height = this.bounds.Max(p => p.Y) - top;
             rect_bounds = new Rectangle(left, top, width, height);
+            centre = this.bounds.ToArray().PolygonCentre();
 
 
             bakeddistances = new Bitmap(rect_bounds.Width + max_blenddst * 2, rect_bounds.Height + max_blenddst * 2);
             bakedrectangle = new Rectangle(left - max_blenddst, top - max_blenddst, bakeddistances.Width, bakeddistances.Height);
+            bakedbounds = new Bitmap(rect_bounds.Width + max_blenddst * 2, rect_bounds.Height + max_blenddst * 2);
 
             Graphics g = Graphics.FromImage(bakeddistances);
             List<Point[]> blendareas = new List<Point[]>();
@@ -113,9 +118,11 @@ namespace TerrainGenerator
                 Color todraw = Color.FromArgb(255, distance, distance, distance); //Cache distance values in a bitmap
                 g.FillPolygon(new Pen(todraw).Brush, this.bounds.ToArray().ScalePolygon(-scale, new Point(-left + max_blenddst, -top + max_blenddst)));
             }
-            //g.FillPolygon(new Pen(Color.FromArgb(255, 255, 255, 255)).Brush, result.bounds.ToArray().ScalePolygon(-blenddst, new Point(-left + max_blenddst, -top + max_blenddst)));
-
             bakeddistances_data = bakeddistances.LockBits(new Rectangle(0, 0, bakeddistances.Width, bakeddistances.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+
+            g = Graphics.FromImage(bakedbounds);
+            g.FillPolygon(new Pen(Color.FromArgb(255, 255, 0, 0)).Brush, this.bounds.ToArray().Offset(new Point(-left + max_blenddst, -top + max_blenddst))); //Mark the pixel
+            bakedbounds_data = bakedbounds.LockBits(new Rectangle(0, 0, bakeddistances.Width, bakeddistances.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
         }
         public unsafe int DistanceTo(Point p)
         {
@@ -135,6 +142,25 @@ namespace TerrainGenerator
             }
 
             return -1; //Outside bounds
+        }
+        public unsafe bool Contains(Point p)
+        {
+            if (bakedrectangle.Contains(p))
+            {
+                Point adjusted = new Point(p.X - bakedrectangle.Left, p.Y - bakedrectangle.Top);
+                int checkidx = adjusted.X * 4 + adjusted.Y * bakeddistances_data.Stride;
+
+                if (checkidx >= 0 && checkidx < bakeddistances_data.Stride * bakeddistances_data.Height)
+                {
+                    return ((byte*)bakedbounds_data.Scan0)[checkidx + 2] == 255;
+                }
+                else
+                {
+                    throw new IndexOutOfRangeException("x or y out of range");
+                }
+            }
+
+            return false; //Outside bounds
         }
         public static double CurvePoints(double distance, double xcutoff, double ycutoff)
         {

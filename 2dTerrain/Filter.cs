@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using TerrainGenerator;
 
 public unsafe class Filter
@@ -14,8 +15,16 @@ public unsafe class Filter
     public void ApplyFilter(byte* colordata)
     {
         colordata[0] = (byte)Math.Min(255, b + colordata[0]);
-        colordata[1] = (byte)Math.Min(255, g + colordata[0]);
-        colordata[2] = (byte)Math.Min(255, r + colordata[0]);
+        colordata[1] = (byte)Math.Min(255, g + colordata[1]);
+        colordata[2] = (byte)Math.Min(255, r + colordata[2]);
+    }
+    public int* GetArry()
+    {
+        int* result = (int*)Marshal.AllocHGlobal(3 * sizeof(int));
+        result[0] = b;
+        result[1] = g;
+        result[2] = r;
+        return result;
     }
     public enum RockTintType
     {
@@ -47,7 +56,7 @@ public unsafe class Filter
                 int brightness = r.Next(0, variance);
                 result.r = brightness;
                 result.g = brightness;
-                result.b = brightness;                
+                result.b = brightness;
                 break;
             case RockTintType.Yellow:
                 int yellowness = r.Next(0, variance);

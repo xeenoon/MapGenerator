@@ -1,9 +1,35 @@
 using System.Data;
+using System.Management;
 
 namespace TerrainGenerator
 {
     public static class Extensions
     {
+        public static bool HasNvidiaGpu()
+        {
+            return true;
+            try
+            {
+                // Create a ManagementObjectSearcher object to query for GPU devices
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
+
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    // Check the "Name" property for "NVIDIA"
+                    string name = obj["Name"].ToString();
+                    if (name.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error querying for GPU information: " + ex.Message);
+            }
+
+            return false;
+        }
         public static int DistanceTo(this Point point1, Point point2)
         {
             int xdist = point1.X - point2.X;
@@ -50,6 +76,15 @@ namespace TerrainGenerator
             }
 
             return scaledPoints;
+        }
+        public static Point[] Offset(this Point[] points, Point offset)
+        {
+            Point[] result = new Point[points.Length];
+            for (int i = 0; i < points.Length; ++i)
+            {
+                result[i] = new Point(points[i].X + offset.X, points[i].Y + offset.Y);
+            }
+            return result;
         }
         public static Point PolygonCentre(this Point[] bounds)
         {
