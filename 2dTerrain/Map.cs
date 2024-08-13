@@ -84,7 +84,7 @@ namespace TerrainGenerator
             {
                 int doorstoremove = r.Next(0, 4);
                 Point random_top_entrance = new Point(room.bounds.X + r.Next(0, room.bounds.Width), room.bounds.Y);
-                Point random_bottom_entrance = new Point(room.bounds.X + r.Next(0, room.bounds.Width), room.bounds.Y + room.bounds.Height);
+                Point random_bottom_entrance = new Point(room.bounds.X + r.Next(0, room.bounds.Width), room.bounds.Y + room.bounds.Height-1);
                 Point random_left_entrance = new Point(room.bounds.X, room.bounds.Y + r.Next(0, room.bounds.Height));
                 Point random_right_entrance = new Point(room.bounds.X + room.bounds.Width, room.bounds.Y + r.Next(0, room.bounds.Height));
 
@@ -116,7 +116,7 @@ namespace TerrainGenerator
                     {
                         if (!room.bounds.Contains(p) && GetGridSquare(p.X, p.Y) == 1)
                         {
-                            added.AddRange(GenerateMazeFromPoint(p.X + p.Y * width));
+                           // added.AddRange(GenerateMazeFromPoint(p.X + p.Y * width));
                         }
                     }
                 }
@@ -124,6 +124,7 @@ namespace TerrainGenerator
             }
 
             //Look for paths that are seperated by one
+            MessageBox.Show($"Paths: {paths.Count}");
             for (int i = 0; i < paths.Count; ++i)
             {
                 var path = paths[i];
@@ -147,11 +148,11 @@ namespace TerrainGenerator
                                     if (Math.Abs(closestpoint.X - p1.X) == 2) //2 apart on x axis
                                     {
                                         //free upthe space inbetween
-                                        SetGridSquare((closestpoint.X + p1.X) / 2, p1.Y, (int)GridSquareType.Floor);
+                                        SetGridSquare((closestpoint.X + p1.X) / 2, p1.Y, (int)GridSquareType.Marked);
                                     }
                                     else //2 apart on y axis
                                     {
-                                        SetGridSquare(p1.X, (p1.Y + closestpoint.Y) / 2, (int)GridSquareType.Floor);
+                                        SetGridSquare(p1.X, (p1.Y + closestpoint.Y) / 2, (int)GridSquareType.Marked);
                                     }
                                     //Joined path, exit
                                     path.linked = true;
