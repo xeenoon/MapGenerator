@@ -42,13 +42,18 @@ namespace _2dTerrain
                 {
                     const int squaresize = 10;
                     Color drawcolor = Color.AliceBlue;
-                    if (map.GetGridSquare(x, y) == (int)GridSquareType.Floor)
+                    var squaretype = (GridSquareType)map.GetGridSquare(x, y);
+                    if (squaretype == GridSquareType.Floor)
                     {
                         drawcolor = Color.White;
                     }
-                    else
+                    else if(squaretype == GridSquareType.Wall)
                     {
                         drawcolor = Color.Black;
+                    }
+                    else if(squaretype == GridSquareType.Marked)
+                    {
+                        drawcolor = Color.Red;
                     }
                     g.FillRectangle(new Pen(drawcolor).Brush, new Rectangle(x * squaresize, y * squaresize, squaresize, squaresize));
                 }

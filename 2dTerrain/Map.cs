@@ -2,8 +2,18 @@ using System.Runtime.InteropServices;
 using Microsoft.VisualBasic;
 namespace TerrainGenerator
 {
+
     public unsafe class Map
     {
+        private class Path
+        {
+            public List<Point> points = new List<Point>();
+            public bool linked;
+            public Path(List<Point> points)
+            {
+                this.points = points;
+            }
+        }
         int[] gridSquares;
         public int width;
         public int height;
@@ -68,6 +78,8 @@ namespace TerrainGenerator
             }
             //Connect rooms via hallways
             //Assign doorways to each of the rooms, disallow any other entrances
+            List<Path> paths = new List<Path>();
+
             foreach (var room in rooms)
             {
                 int doorstoremove = r.Next(0, 4);
@@ -84,84 +96,76 @@ namespace TerrainGenerator
                 //Remove doors
                 for (int i = 0; i < doorstoremove; ++i)
                 {
-                    room.doors.RemoveAt(r.Next(0, room.doors.Count));
+                    //room.doors.RemoveAt(r.Next(0, room.doors.Count));
                 }
 
                 foreach (var door in room.doors)
                 {
-                    GenerateMazeFromPoint(door.X + door.Y * width);
+                    var toadd = new Path(GenerateMazeFromPoint(door.X + door.Y * width));
+                    toadd.points.Add(door);
+                    paths.Add(toadd);
                 }
             }
-            for (int i = 0; i < width * height; ++i)
+
+            foreach (var path in paths)
             {
-                Point p = new Point(i % width, i / width);
-                foreach (var room in rooms)
+                List<Point> added = new List<Point>();
+                foreach (Point p in path.points)
                 {
-                    if (!room.bounds.Contains(p) && GetGridSquare(p.X, p.Y) == 1)
+                    foreach (var room in rooms)
                     {
-                        GenerateMazeFromPoint(i);
+                        if (!room.bounds.Contains(p) && GetGridSquare(p.X, p.Y) == 1)
+                        {
+                            added.AddRange(GenerateMazeFromPoint(p.X + p.Y * width));
+                        }
+                    }
+                }
+                path.points.AddRange(added);
+            }
+
+            //Look for paths that are seperated by one
+            for (int i = 0; i < paths.Count; ++i)
+            {
+                var path = paths[i];
+                if (!path.linked)
+                {
+                    foreach (var p1 in path.points)
+                    {
+                        if (path.linked)
+                        {
+                            break;
+                        }
+                        for (int j = 0; j < paths.Count; j++)
+                        {
+                            Path? path2 = paths[j];
+                            if (j != i)
+                            {
+                                var closestpoints = path2.points.Where(p2 => Math.Abs(p2.X - p1.X) == 2 || Math.Abs(p2.Y - p1.Y) == 2).ToList();
+                                if (closestpoints.Count() >= 1) //Exactly one space between them
+                                {
+                                    var closestpoint = closestpoints[0];
+                                    if (Math.Abs(closestpoint.X - p1.X) == 2) //2 apart on x axis
+                                    {
+                                        //free upthe space inbetween
+                                        SetGridSquare((closestpoint.X + p1.X) / 2, p1.Y, (int)GridSquareType.Floor);
+                                    }
+                                    else //2 apart on y axis
+                                    {
+                                        SetGridSquare(p1.X, (p1.Y + closestpoint.Y) / 2, (int)GridSquareType.Floor);
+                                    }
+                                    //Joined path, exit
+                                    path.linked = true;
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
             }
-
-            //Look through all the squares finding solutions
-            List<List<Point>> paths = new List<List<Point>>();
-            for (int i = 0; i < width * height; ++i)
-            {
-                Point p = new Point(i % width, i / width);
-                if (!paths.SelectMany(p => p).Contains(p)) //Performance dont use .Contains rather store as array
-                {
-                    //Search a new path
-                    List<Point> path = new List<Point>();
-                    //DFS the area
-
-
-                    paths.Add(path);
-                }
-            }
         }
-        public List<Point> DFS(Point p)
+        public List<Point> GenerateMazeFromPoint(int p)
         {
             List<Point> result = new List<Point>();
-            bool reachedend = false;
-
-
-            bool[] searched = new bool[width * height];
-            while (!reachedend)
-            {
-                //Search left
-                searched[p.X + p.Y * width] = true;
-                result.Add(p);
-
-                //Try moving up
-                if (p.Y >= 1 && GetGridSquare(p.X, p.Y - 1) == (int)GridSquareType.Floor)
-                {
-                    p.Y--;
-                }
-                //Try moving down
-                else if (p.Y < height-1 && GetGridSquare(p.X, p.Y +1) == (int)GridSquareType.Floor)
-                {
-                    p.Y++;
-                }
-                //Try moving left
-                else if (p.X >= 1 && GetGridSquare(p.X-1, p.Y) == (int)GridSquareType.Floor)
-                {
-                    p.X--;
-                }
-                //Try moving right
-                else if (p.X < width-1 && GetGridSquare(p.X+1, p.Y) == (int)GridSquareType.Floor)
-                {
-                    p.X++;
-                }
-                else{
-                    reachedend = true; //cant search any more 
-                }
-            }
-            return result;
-        }
-        public void GenerateMazeFromPoint(int p)
-        {
-            Random r = new Random();
             bool canmove = true;
             int lastdirection = 0;
             while (canmove)
@@ -185,6 +189,7 @@ namespace TerrainGenerator
                         }
                         lastdirection = direction;
                         gridSquares[p] = (int)GridSquareType.Floor;
+                        result.Add(new Point(p % width, p / width));
                         placed = true;
                     }
                 } while (directions.Count() >= 1);
@@ -193,6 +198,7 @@ namespace TerrainGenerator
                     canmove = false;
                 }
             }
+            return result;
         }
         public bool CanMove(int location, int direction, bool forcejoin = false)
         {
@@ -345,5 +351,6 @@ namespace TerrainGenerator
     {
         Wall = 0,
         Floor = 1,
+        Marked = 2,
     }
 }
