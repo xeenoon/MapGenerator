@@ -24,7 +24,7 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += GenerateTiles;
+            generateButton.Click += GenerateMapGrid;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
