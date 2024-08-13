@@ -31,7 +31,7 @@ namespace _2dTerrain
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
 
-            Map map = new Map(50, 50);
+            Map map = new Map(100, 100);
             map.GenerateMap();
             for (int x = 0; x < map.width; ++x)
             {

@@ -70,7 +70,7 @@ public unsafe class Map
             room.doors.Add(random_left_entrance);
             room.doors.Add(random_right_entrance);
 
-            foreach (var door in room.doors)
+            foreach(var door in room.doors)
             {
                 GenerateMazeFromPoint(door.X + door.Y * width);
             }
@@ -80,10 +80,15 @@ public unsafe class Map
     {
         Random r = new Random();
         bool canmove = true;
+        int lastdirection = 0;
         while (canmove)
         {
             Stack<int> directions = new Stack<int>((new int[] { 1, -1, width, -width }).ToList());
-            directions.Shuffle();
+            if (lastdirection != 0)
+            {
+                directions.Push(lastdirection); //Weight going in the same direction
+            }
+            directions = directions.Shuffle();
             bool placed = false;
             do
             {
@@ -91,6 +96,7 @@ public unsafe class Map
                 if (CanMove(p, direction))
                 {
                     p += direction;
+                    lastdirection = direction;
                     gridSquares[p] = (int)GridSquareType.Floor;
                     placed = true;
                 }
@@ -103,9 +109,86 @@ public unsafe class Map
     }
     public bool CanMove(int location, int direction)
     {
+        int x = location % width;
+        int y = location / width;
+        //Check to make sure not on edge
+        if (Math.Abs(direction) == 1)
+        {
+            if (x + direction == -1 || x + direction == width)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (y + direction == -1 || y + direction == height)
+            {
+                return false;
+            }
+        }
         if (*(gridSquares + location + direction) == (int)GridSquareType.Wall)
         {
-            return true;
+            //Check all the squares nearby
+            int abovesquare = location + direction;
+
+            int upup = -1;
+            int upleft = -1;
+            int upright = -1;
+
+            if (Math.Abs(direction) == 1) //Moving left/right
+            {
+                if (y < width - 1)
+                {
+                    upleft = abovesquare + width;
+                }
+                if (y >= 1)
+                {
+                    upright = abovesquare - width;
+                }
+                if (x + direction + direction >= 1 && x + direction + direction < width - 1)
+                {
+                    upup = abovesquare + direction;
+                }
+            }
+            else
+            {
+                if (x > 1)
+                {
+                    upright = abovesquare - 1;
+                }
+                if (x < width - 1)
+                {
+                    upleft = abovesquare + 1;
+                }
+                if (y + direction + direction >= 1 && y + direction + direction < height - 1)
+                {
+                    upup = abovesquare + direction;
+                }
+            }
+
+            bool result = true;
+            if (upup != -1)
+            {
+                if (*(gridSquares + upup) == (int)GridSquareType.Floor) //Dont draw two floors next to each other
+                {
+                    result = false;
+                }
+            }
+            if (upleft != -1)
+            {
+                if (*(gridSquares + upleft) == (int)GridSquareType.Floor) //Dont draw two floors next to each other
+                {
+                    result = false;
+                }
+            }
+            if (upright != -1)
+            {
+                if (*(gridSquares + upright) == (int)GridSquareType.Floor) //Dont draw two floors next to each other
+                {
+                    result = false;
+                }
+            }
+            return result;
         }
         return false;
     }
