@@ -24,11 +24,38 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += GenerateTiles;
+            generateButton.Click += GenerateMapGrid;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
         }
+        public unsafe void GenerateMapGrid(object sender, EventArgs e)
+        {
+            result = new Bitmap(Width, Height);
+            Graphics g = Graphics.FromImage(result);
+
+            Map map = new Map(200, 100);
+            map.GenerateMap();
+            for (int x = 0; x < map.width; ++x)
+            {
+                for (int y = 0; y < map.height; ++y)
+                {
+                    const int squaresize = 10;
+                    Color drawcolor = Color.AliceBlue;
+                    if (map.GetGridSquare(x, y) == (int)GridSquareType.Floor)
+                    {
+                        drawcolor = Color.White;
+                    }
+                    else
+                    {
+                        drawcolor = Color.Black;
+                    }
+                    g.FillRectangle(new Pen(drawcolor).Brush, new Rectangle(x * squaresize, y * squaresize, squaresize, squaresize));
+                }
+            }
+            pictureBox.Invalidate();
+        }
+        public unsafe void GenerateTiles(object sender, EventArgs e)
         [DllImport("vectorexample.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr ExtVectorAdd(IntPtr a, IntPtr b, int n);
 
