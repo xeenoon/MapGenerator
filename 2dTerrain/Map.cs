@@ -92,8 +92,7 @@ public unsafe class Map
             Point p = new Point(i % width, i / width);
             foreach (var room in rooms)
             {
-
-                if (!room.bounds.Contains(p))
+                if (!room.bounds.Contains(p) && GetGridSquare(p.X, p.Y) == 1)
                 {
                     GenerateMazeFromPoint(i);
                     ++mazesdrawn;
