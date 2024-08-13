@@ -3,25 +3,30 @@ using Microsoft.VisualBasic;
 
 public unsafe class Map
 {
-    int* gridSquares;
+    int[] gridSquares;
     public int width;
     public int height;
     public Map(int width, int height)
     {
         this.width = width;
         this.height = height;
-        fixed (int* arry = new int[width * height])
-        {
-            gridSquares = arry;
-        }
+        gridSquares = new int[width * height];
     }
-    public unsafe int* GetGridSquare(int x, int y)
+    public unsafe int GetGridSquare(int x, int y)
     {
         if (x >= width || y >= height)
         {
             throw new IndexOutOfRangeException("x or y out of range for GetGridSquare");
         }
-        return &gridSquares[x + y * width];
+        return gridSquares[x + y * width];
+    }
+    public unsafe void SetGridSquare(int x, int y, int value)
+    {
+        if (x >= width || y >= height)
+        {
+            throw new IndexOutOfRangeException("x or y out of range for GetGridSquare");
+        }
+        gridSquares[x + y * width] = value;
     }
     List<Room> rooms = new List<Room>();
 
@@ -29,15 +34,18 @@ public unsafe class Map
     {
         Random r = new Random();
         //Generate a group of rooms
-        int maxrooms = 4;
+        const int maxrooms = 10;
+        const int minsize = 4;
+        const int maxsize = 30;
+
         int builtrooms = 0;
         //Rooms can be from 4x4 to 10x10
         int xlocation;
         int ylocation;
         while (builtrooms < maxrooms)
         {
-            int roomwidth = r.Next(4, 11);
-            int roomheight = r.Next(4, 11);
+            int roomwidth = r.Next(minsize, maxsize);
+            int roomheight = r.Next(minsize, maxsize);
             xlocation = r.Next(0, width - roomwidth);
             ylocation = r.Next(0, height - roomheight);
             //Check if we intersect with any other rooms
@@ -53,7 +61,7 @@ public unsafe class Map
             {
                 for (int y = ylocation; y < ylocation + roomheight; ++y)
                 {
-                    GetGridSquare(x, y)[0] = (int)GridSquareType.Floor;
+                    SetGridSquare(x, y, (int)GridSquareType.Floor);
                 }
             }
         }
@@ -70,9 +78,26 @@ public unsafe class Map
             room.doors.Add(random_left_entrance);
             room.doors.Add(random_right_entrance);
 
-            foreach(var door in room.doors)
+            foreach (var door in room.doors)
             {
                 GenerateMazeFromPoint(door.X + door.Y * width);
+            }
+        }
+        //return;
+        //Add remaining maze dots
+        int mazes = 500;
+        int mazesdrawn = 0;
+        for (int i = 0; i < width * height; ++i)
+        {
+            Point p = new Point(i % width, i / width);
+            foreach (var room in rooms)
+            {
+
+                if (!room.bounds.Contains(p))
+                {
+                    GenerateMazeFromPoint(i);
+                    ++mazesdrawn;
+                }
             }
         }
     }
@@ -96,6 +121,10 @@ public unsafe class Map
                 if (CanMove(p, direction))
                 {
                     p += direction;
+                    if (p < 0 || p >= width * height)
+                    {
+                        MessageBox.Show("Out of range?");
+                    }
                     lastdirection = direction;
                     gridSquares[p] = (int)GridSquareType.Floor;
                     placed = true;
@@ -111,84 +140,99 @@ public unsafe class Map
     {
         int x = location % width;
         int y = location / width;
+        if(x==0 || x == width-1 || y==0 || y==height-1) //Dont check edges
+        {
+            return false;
+        }
+
         //Check to make sure not on edge
         if (Math.Abs(direction) == 1)
         {
-            if (x + direction == -1 || x + direction == width)
+            if (x + direction < 1 || x + direction >= width - 1)
             {
                 return false;
             }
         }
         else
         {
-            if (y + direction == -1 || y + direction == height)
+            if (y + direction / width < 1 || y + direction / width >= height - 1)
             {
                 return false;
             }
         }
-        if (*(gridSquares + location + direction) == (int)GridSquareType.Wall)
+        if (gridSquares[location + direction] == (int)GridSquareType.Wall)
         {
             //Check all the squares nearby
             int abovesquare = location + direction;
-
-            int upup = -1;
-            int upleft = -1;
-            int upright = -1;
-
-            if (Math.Abs(direction) == 1) //Moving left/right
+            int newx = abovesquare % width;
+            int newy = abovesquare / width;
+            if (newx == 0 || newy == 0 || newx == width - 1 || newy == height - 1)
             {
-                if (y < width - 1)
-                {
-                    upleft = abovesquare + width;
-                }
-                if (y >= 1)
-                {
-                    upright = abovesquare - width;
-                }
-                if (x + direction + direction >= 1 && x + direction + direction < width - 1)
-                {
-                    upup = abovesquare + direction;
-                }
-            }
-            else
-            {
-                if (x > 1)
-                {
-                    upright = abovesquare - 1;
-                }
-                if (x < width - 1)
-                {
-                    upleft = abovesquare + 1;
-                }
-                if (y + direction + direction >= 1 && y + direction + direction < height - 1)
-                {
-                    upup = abovesquare + direction;
-                }
+                string proof = $"Direction: {direction}\n({x},{y})\n{x} + {direction} < 0 || {x} + {direction} >= {width - 1}\n{y} + {direction / width} < 0 || {y} + {direction / width} >= {height - 1}";
+                MessageBox.Show(proof);
             }
 
-            bool result = true;
-            if (upup != -1)
+            //Check the contents of every pixel around above square
+            //We can assume no bounds checks are nessecary?
+            bool upleft;
+            bool up;
+            bool upright;
+            bool left;
+            bool leftdown;
+            bool down;
+            bool downright;
+            bool right;
+            try
             {
-                if (*(gridSquares + upup) == (int)GridSquareType.Floor) //Dont draw two floors next to each other
-                {
-                    result = false;
-                }
+                upleft = gridSquares[abovesquare - width - 1] == 0;
+                up = gridSquares[abovesquare - width] == 0;
+                upright = gridSquares[abovesquare - width + 1] == 0;
+
+                left = gridSquares[abovesquare - 1] == 0;
+                leftdown = gridSquares[abovesquare + width - 1] == 0;
+                down = gridSquares[abovesquare + width] == 0;
+                downright = gridSquares[abovesquare + width + 1] == 0;
+                right = gridSquares[abovesquare + 1] == 0;
             }
-            if (upleft != -1)
+            catch
             {
-                if (*(gridSquares + upleft) == (int)GridSquareType.Floor) //Dont draw two floors next to each other
-                {
-                    result = false;
-                }
+                MessageBox.Show(abovesquare.ToString());
+                throw new Exception("Lol what");
             }
-            if (upright != -1)
+            if (direction == 1)
             {
-                if (*(gridSquares + upright) == (int)GridSquareType.Floor) //Dont draw two floors next to each other
-                {
-                    result = false;
-                }
+                //Moving right?
+                //Mark left of next pixel as available
+                left = true;
+                upleft = true;
+                leftdown = true;
             }
-            return result;
+            else if (direction == -1)
+            {
+                //Moving left?
+                //Mark right of next pixel as available
+                right = true;
+                upright = true;
+                downright = true;
+            }
+            else if (direction == width)
+            {
+                //Moving down?
+                //Mark up of next pixel as available
+                up = true;
+                upright = true;
+                upleft = true;
+            }
+            else if (direction == -width)
+            {
+                //Moving up?
+                //Mark down of next pixel as available
+                down = true;
+                downright = true;
+                leftdown = true;
+            }
+
+            return upleft && up && upright && left && leftdown && down && downright && right;
         }
         return false;
     }

@@ -31,7 +31,7 @@ namespace _2dTerrain
             result = new Bitmap(Width, Height);
             Graphics g = Graphics.FromImage(result);
 
-            Map map = new Map(100, 100);
+            Map map = new Map(200, 100);
             map.GenerateMap();
             for (int x = 0; x < map.width; ++x)
             {
@@ -39,7 +39,7 @@ namespace _2dTerrain
                 {
                     const int squaresize = 10;
                     Color drawcolor = Color.AliceBlue;
-                    if (*map.GetGridSquare(x, y) == (int)GridSquareType.Floor)
+                    if (map.GetGridSquare(x, y) == (int)GridSquareType.Floor)
                     {
                         drawcolor = Color.White;
                     }
