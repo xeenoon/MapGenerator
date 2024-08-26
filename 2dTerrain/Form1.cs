@@ -4,6 +4,7 @@ using System.Windows.Forms.VisualStyles;
 using TerrainGenerator;
 using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices.ObjectiveC;
 
 namespace _2dTerrain
 {
@@ -28,6 +29,30 @@ namespace _2dTerrain
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
+            caterpillar = new Caterpillar(10, new Point(500, 500));
+            var updatetimer = new System.Timers.Timer(14)
+            {
+                AutoReset = true
+            };
+            updatetimer.Elapsed += UpdateCaterpillar;
+            caterpillar.Draw(result);
+            Graphics g = Graphics.FromImage(result);
+            g.FillRectangle(new Pen(Color.Black).Brush, 0, 0, 500, 500);
+            pictureBox.Invalidate();
+
+            //updatetimer.Start();
+        }
+        Caterpillar caterpillar;
+        public void UpdateCaterpillar(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            Point cursorPosition = Cursor.Position;
+
+            // Convert the screen coordinates to client coordinates
+            Point clientPosition = this.PointToClient(cursorPosition);
+
+            caterpillar.MoveTowards(clientPosition);
+            caterpillar.Draw(result);
+            pictureBox.Invalidate();
         }
         public unsafe void GenerateMapGrid(object sender, EventArgs e)
         {
@@ -47,11 +72,11 @@ namespace _2dTerrain
                     {
                         drawcolor = Color.White;
                     }
-                    else if(squaretype == GridSquareType.Wall)
+                    else if (squaretype == GridSquareType.Wall)
                     {
                         drawcolor = Color.Black;
                     }
-                    else if(squaretype == GridSquareType.Marked)
+                    else if (squaretype == GridSquareType.Marked)
                     {
                         drawcolor = Color.Red;
                     }
