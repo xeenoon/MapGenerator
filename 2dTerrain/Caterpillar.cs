@@ -25,16 +25,40 @@ namespace TerrainGenerator
         public void MoveTowards(Point p)
         {
             //Assume it will be called once a frame
-            const double speed = 1;
+            const double speed = 2;
 
             //Find the angle between the head and the neck
             var head = spine[0];
             var neck = spine[1];
-            double headangle = CalculateAngle(neck, head);
-            double mouseangle = CalculateAngle(neck, p);
 
             //Rotate the head towards the mouse
             const double rotationspeed = 0.05;
+            int lastpoint = spine.Count()-1;
+            spine[0] = RotateTowards(spine[1], spine[0], p, rotationspeed);
+            spine[0] = DragPoint(spine[0], CalculateAngle(spine[1], spine[0]), speed);
+
+            //Recursively go through all spine points, moving it towards the LAST one
+            for(int i = 1; i < spine.Count(); ++i)
+            {
+                var me = spine[i];
+                var infront = spine[i-1];
+                double angle = CalculateAngle(me, infront);
+
+                //Drag myself towards this new angle by speed
+                spine[i] = DragPoint(spine[i], angle, speed);
+            }
+
+        }
+        private static PointF DragPoint(PointF p, double angle, double speed)
+        {
+            PointF dp = new PointF((float)(Math.Cos(angle) * speed),(float)(Math.Sin(angle) * speed));
+            return new PointF(p.X + dp.X, p.Y + dp.Y);
+        }
+        public static PointF RotateTowards(PointF p0, PointF p1, PointF p2, double rotationspeed)
+        {
+            double headangle = CalculateAngle(p0, p1);
+            double mouseangle = CalculateAngle(p0, p2);
+
             double newangle;
             if (Math.Abs(mouseangle - headangle) < rotationspeed)
             {
@@ -46,11 +70,10 @@ namespace TerrainGenerator
 
                 if (difference > Math.PI) difference -= 2 * Math.PI;
                 else if (difference < -Math.PI) difference += 2 * Math.PI;
-                
+
                 newangle = headangle + (difference > 0 ? rotationspeed : -rotationspeed);
             }
-            spine[0] = new PointF((float)(Math.Cos(newangle) * neck.DistanceTo(head)) + neck.X, (float)(Math.Sin(newangle) * neck.DistanceTo(head) + neck.Y));
-
+            return new PointF((float)(Math.Cos(newangle) * p0.DistanceTo(p1)) + p0.X, (float)(Math.Sin(newangle) * p0.DistanceTo(p1) + p0.Y));
         }
         public static double CalculateAngle(PointF p1, PointF p2)
         {

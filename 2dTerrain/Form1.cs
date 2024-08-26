@@ -29,13 +29,13 @@ namespace _2dTerrain
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
-            caterpillar = new Caterpillar(3, new Point(600,500));
+            caterpillar = new Caterpillar(10, new Point(600,500));
             updatetimer.Elapsed += UpdateTick;
             updatetimer.AutoReset = true;
             updatetimer.Start();
         }
         Caterpillar caterpillar;
-        System.Timers.Timer updatetimer = new System.Timers.Timer(14);
+        System.Timers.Timer updatetimer = new System.Timers.Timer(30);
         bool updateruning = false;
         public void UpdateTick(object sender, ElapsedEventArgs e)
         {
