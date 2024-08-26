@@ -50,6 +50,12 @@ namespace TerrainGenerator
             int ydist = point1.Y - point2.Y;
             return (int)Math.Sqrt(xdist * xdist + ydist * ydist);
         }
+        public static double DistanceTo(this PointF point1, PointF point2)
+        {
+            double xdist = point1.X - point2.X;
+            double ydist = point1.Y - point2.Y;
+            return Math.Sqrt(xdist * xdist + ydist * ydist);
+        }
         public static Point[] ScalePolygon(this Point[] points, int scaleAmount, Point staticoffset)
         {
             // Calculate the centroid of the polygon

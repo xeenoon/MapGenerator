@@ -4,6 +4,7 @@ using System.Windows.Forms.VisualStyles;
 using TerrainGenerator;
 using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.Timers;
 
 namespace _2dTerrain
 {
@@ -28,6 +29,28 @@ namespace _2dTerrain
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
+            caterpillar = new Caterpillar(3, new Point(600,500));
+            updatetimer.Elapsed += UpdateTick;
+            updatetimer.AutoReset = true;
+            updatetimer.Start();
+        }
+        Caterpillar caterpillar;
+        System.Timers.Timer updatetimer = new System.Timers.Timer(14);
+        bool updateruning = false;
+        public void UpdateTick(object sender, ElapsedEventArgs e)
+        {
+            if(updateruning){return;}
+            updateruning = true;
+            result = new Bitmap(Width, Height);
+            Point cursorPosition = Cursor.Position;
+
+            // Convert the screen coordinates to client coordinates
+            Point clientPosition = this.PointToClient(cursorPosition);
+
+            caterpillar.MoveTowards(clientPosition);
+            caterpillar.Draw(result);
+            pictureBox.Invalidate();
+            updateruning = false;
         }
         public unsafe void GenerateMapGrid(object sender, EventArgs e)
         {
