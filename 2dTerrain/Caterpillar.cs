@@ -18,7 +18,7 @@ namespace TerrainGenerator
             }
             sintimes = new double[length];
             //Calculate the old distances
-            olddistances = new double[spine.Count()]; //array is one longer than required to avoid weird math later on. 
+            olddistances = new double[length]; //array is one longer than required to avoid weird math later on. 
             //'i' index for distnace is the same as the tail of the dragged point
 
             for (int i = 0; i < length; ++i)
@@ -54,6 +54,10 @@ namespace TerrainGenerator
         private static PointF DragPoint(PointF p0, PointF p1, double speed, double minDistance)
         {
             speed = Math.Min(speed, p0.DistanceTo(p1) - minDistance); //Throttle speed
+            if (speed < 0)
+            {
+                return p0;
+            }
             double angle = CalculateAngle(p0, p1);
             PointF dp = new PointF((float)(Math.Cos(angle) * speed), (float)(Math.Sin(angle) * speed));
             PointF result = new PointF(p0.X + dp.X, p0.Y + dp.Y);
@@ -103,10 +107,21 @@ namespace TerrainGenerator
         public void Draw(Bitmap result)
         {
             Graphics g = Graphics.FromImage(result);
-            foreach (var p in spine)
+            PointF[] points = new RectangleF(spine[0].X - sectionwidth / 2, spine[0].Y - sectionheight / 8, sectionwidth, sectionheight / 4).ToPolygon();
+            var angle = (float)CalculateAngle(spine[1], spine[0]);
+            points = points.Rotate(angle);
+
+            g.DrawPolygon(new Pen(Color.Black), points);
+            for (int i = 1; i < spine.Count(); ++i)
             {
-                int size = 10;
-                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(p.X - size / 2, p.Y - size / 2, size, size));
+                var p = spine[i];
+                int dotsize = 10;
+                points = new RectangleF(p.X - sectionwidth/2, p.Y - sectionheight/2, sectionwidth, sectionheight).ToPolygon(10,10);
+                angle = (float)CalculateAngle(spine[i], spine[i-1]);
+                points = points.Rotate(angle);
+                g.DrawPolygon(new Pen(Color.Black), points);
+
+                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(p.X - dotsize / 2, p.Y - dotsize / 2, dotsize, dotsize));
             }
         }
     }

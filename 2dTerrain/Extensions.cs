@@ -56,6 +56,96 @@ namespace TerrainGenerator
             double ydist = point1.Y - point2.Y;
             return Math.Sqrt(xdist * xdist + ydist * ydist);
         }
+        public static PointF[] ToPolygon(this RectangleF rect, float bezel = 0, float bump = 0)
+        {
+            const int detaillevel = 10;
+            List<PointF> result = new List<PointF>();
+            //Start on the left hand side, drawing points from rect.left
+            for(int i = 0; i < detaillevel+1; ++i) //+1 to add a point at the bottom left
+            {
+                //Assume we start at the minimum of the sin curve, doing on full sin rotation
+                //y = sin(x-pi/2)
+                //x is min at 0, 2pi
+                double x = 2 * i * Math.PI/detaillevel;
+
+                var curve = (float)Math.Sin(x - Math.PI/2) * bump / 2;
+                
+                float y = (i * (rect.Bottom - rect.Top)/(detaillevel)) + rect.Top;
+                result.Add(new PointF(rect.Left + curve, y));
+            }
+
+            //Add a point at the bottom right
+            result.Add(new PointF(rect.Right, rect.Bottom));
+
+            //Start on the right hand side, drawing points from rect.right
+            for(int i = 0; i < detaillevel+1; ++i) //+1 to add a point to the top right
+            {
+                //Assume we start at the minimum of the sin curve, doing on full sin rotation
+                //y = sin(x)
+                //x is 0 at 0, pi
+                double x = i * Math.PI/detaillevel;
+
+                var curve = (float)Math.Sin(x) * bezel;
+                float y = rect.Bottom - (i*(rect.Bottom - rect.Top)/detaillevel); //draw bottom up
+                result.Add(new PointF(rect.Right + curve, y));
+            }
+            return result.ToArray();
+
+            // Calculate the basic four corners of the rectangle
+            PointF topLeft = new PointF(rect.Left, rect.Top);
+            PointF topRight = new PointF(rect.Right, rect.Top);
+            PointF bottomRight = new PointF(rect.Right, rect.Bottom);
+            PointF bottomLeft = new PointF(rect.Left, rect.Bottom);
+
+            // Apply the bezel (inward curve on the right side)
+            if (bezel > 0)
+            {
+                topRight.X -= bezel;
+                bottomRight.X -= bezel;
+            }
+
+            // Apply the bump (outward curve on the left side)
+            if (bump > 0)
+            {
+                topLeft.X -= bump;
+                bottomLeft.X -= bump;
+            }
+
+            // Return the points as a polygon
+            return new PointF[]
+            {
+                topLeft,
+                topRight,
+                bottomRight,
+                bottomLeft
+            };
+        }
+        public static PointF[] Rotate(this PointF[] polygon, float theta)
+        {
+            // Calculate the centroid of the polygon
+            float centroidX = polygon.Average(p => p.X);
+            float centroidY = polygon.Average(p => p.Y);
+            PointF centroid = new PointF(centroidX, centroidY);
+
+            float cosTheta = (float)Math.Cos(theta);
+            float sinTheta = (float)Math.Sin(theta);
+
+            PointF[] rotatedPolygon = new PointF[polygon.Length];
+
+            for (int i = 0; i < polygon.Length; i++)
+            {
+                float x = polygon[i].X - centroid.X;
+                float y = polygon[i].Y - centroid.Y;
+
+                // Rotate around the centroid
+                float newX = x * cosTheta - y * sinTheta + centroid.X;
+                float newY = x * sinTheta + y * cosTheta + centroid.Y;
+
+                rotatedPolygon[i] = new PointF(newX, newY);
+            }
+
+            return rotatedPolygon;
+        }
         public static Point[] ScalePolygon(this Point[] points, int scaleAmount, Point staticoffset)
         {
             // Calculate the centroid of the polygon
