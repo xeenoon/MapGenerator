@@ -200,8 +200,8 @@ namespace TerrainGenerator
             bool swinging = false;
             public PointF swingdestination;
             public void WalkCycle(PointF newspine, float angle, double speed)
-            {
-                //Assume foot starts futherest foward for cyclepoint%2PI==0
+            {           
+                //Assume foot starts futherest foward for cyclepoint % 2PI == 0
                 while (cyclepoint >= Math.PI * 2)
                 {
                     cyclepoint -= Math.PI * 2;
@@ -224,45 +224,10 @@ namespace TerrainGenerator
                     //Start swinging foot foward
                     swinging = true;
                 }
+
+
                 spineconnection = newspine;
                 return;
-
-
-                if (cyclepoint >= Math.PI * (3.0 / 2.0)) //Only move foot for last quarter of rotation period
-                {
-                    //Sin starts at cyclepoint = 3pi/2 should be 0, at cyclepoint 2pi should be 1
-
-                    float sinmultiplier = (float)Math.Sin(cyclepoint - Math.PI * (3.0 / 2.0));
-                    foot = new PointF(rootfoot.X + length * sinmultiplier * MathF.Cos(angle),
-                                      rootfoot.Y + length * sinmultiplier * MathF.Sin(angle));
-                }
-                else
-                {
-                    rootfoot = foot;
-                }
-
-                //Start point for knee should be halfway between foot and spine
-                PointF newknee = new PointF((spineconnection.X + foot.X) / 2, (spineconnection.Y + foot.Y) / 2);
-                knee = newknee;
-
-                var perpindicular = PerpendicularVector(spineconnection, rootfoot);
-                float knee_sinmultiplier = (float)Math.Sin(cyclepoint / 2.0 - Math.PI / 2); //Should be minimum for 0, and 0 for PI
-
-                knee = new PointF(newknee.X + perpindicular.X * knee_sinmultiplier * MathF.Cos(angle) * length / 4,
-                                  newknee.Y + perpindicular.Y * knee_sinmultiplier * MathF.Sin(angle) * length / 4);
-
-
-                //Foot moves in a sin wave
-                //Knee moves in a smaller sin wave
-
-                //float foot_sinmultiplier = (float)Math.Sin(cyclepoint);
-                //foot = new PointF(startfoot.X + length * foot_sinmultiplier * MathF.Cos(angle), startfoot.Y + length * foot_sinmultiplier * MathF.Sin(angle));
-
-                //float knee_sinmultiplier = (float)Math.Sin(cyclepoint - Math.PI / 2);
-                ///knee = new PointF(startknee.X + length * knee_sinmultiplier * MathF.Cos(angle), startknee.Y + length * knee_sinmultiplier * MathF.Sin(angle));
-
-                spineconnection = newspine;
-                cyclepoint += 0.05 * speed;
             }
             public static PointF PerpendicularVector(PointF p0, PointF p1)
             {
