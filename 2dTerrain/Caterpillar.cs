@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace TerrainGenerator
@@ -28,7 +29,7 @@ namespace TerrainGenerator
                     olddistances[i] = spine[i].DistanceTo(spine[i - 1]);
                 }
             }
-            legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 6);
+            legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 3);
         }
         public void MoveTowards(Point p)
         {
@@ -46,15 +47,23 @@ namespace TerrainGenerator
             {
                 //Drag myself towards this new angle by speed
                 PointF dragged = DragPoint(spine[i], spine[i - 1], speed, olddistances[i]);
-                var leg = legs.Where(l => l.spineconnection == spine[i]).ToList();
+                var leg = legs.Where(l => l.spineconnection.DistanceTo(spine[i]) < 1).ToList();
                 if (leg.Count() != 0)
                 {
-                    foreach (var side in leg)
+                    for (int j = 0; j < leg.Count; ++j)
                     {
-                        PointF dx = new PointF(dragged.X - spine[i].X, dragged.Y - spine[i].Y);
-                        side.spineconnection = dragged;
-                        side.knee = new PointF(side.knee.X + dx.X, side.knee.Y + dx.Y);
-                        side.foot = new PointF(side.foot.X + dx.X, side.foot.Y + dx.Y);
+                        var side = leg[j];
+
+                        double angle_front = CalculateAngle(spine[i], spine[i - 1]);
+                        double angle_behind = CalculateAngle(spine[i + 1], spine[i]);
+                        double averageangle = angle_front;
+
+                        double perpindicular = averageangle + (j == 0 ? Math.PI / 2 : -Math.PI / 2); //If j is zero its the "left" if its one its on the "right"
+
+                        side.startknee = new PointF((float)(dragged.X + Math.Cos(perpindicular) * side.length / 2), (float)(dragged.Y + Math.Sin(perpindicular) * side.length / 2));
+                        side.startfoot = new PointF((float)(dragged.X + Math.Cos(perpindicular) * side.length), (float)(dragged.Y + Math.Sin(perpindicular) * side.length));
+
+                        side.WalkCycle(dragged, (float)angle_front);
                     }
                 }
                 spine[i] = dragged;
@@ -139,6 +148,9 @@ namespace TerrainGenerator
             {
                 g.DrawLine(new Pen(Color.Black, 4), leg.spineconnection, leg.knee);
                 g.DrawLine(new Pen(Color.Black, 4), leg.knee, leg.foot);
+
+                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
+                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
             }
         }
 
@@ -147,29 +159,54 @@ namespace TerrainGenerator
             public PointF spineconnection;
             public PointF knee;
             public PointF foot;
-            private Leg(PointF spineconnection, PointF kee, PointF foot)
+            public PointF startfoot;
+            public PointF startknee;
+            public int length;
+            private Leg(PointF spineconnection, PointF kee, PointF foot, int length)
             {
                 this.spineconnection = spineconnection;
                 this.knee = kee;
                 this.foot = foot;
+                this.length = length;
+
+
+                startfoot = foot;
+                startknee = knee;
             }
             public static List<Leg> BuildLegs(PointF[] spine, int length)
             {
                 List<Leg> legs = new List<Leg>();
-                for (int i = 1; i < spine.Length / 10; ++i) //Start at one to not draw a leg on the head
+                const int legdst = 4;
+                for (int i = 1; i < spine.Length / legdst; ++i) //Start at one to not draw a leg on the head
                 {
-                    PointF spineconnection = spine[i * 10];
+                    PointF spineconnection = spine[i * legdst];
 
                     //Assume spine[] y's are all the same
                     for (int direction = -1; direction < 2; direction += 2)
                     {
-                        PointF knee = new PointF(spineconnection.X - length / 4, spineconnection.Y + direction * length / 2); //Bend backwards slightly to start
-                        PointF foot = new PointF(spineconnection.X, spineconnection.Y + direction * length); //Leave same angle as start
-                        legs.Add(new Leg(spineconnection, knee, foot));
+                        PointF knee = new PointF(spineconnection.X, spineconnection.Y + direction * length / 2);
+                        PointF foot = new PointF(spineconnection.X, spineconnection.Y + direction * length);
+                        legs.Add(new Leg(spineconnection, knee, foot, length));
                     }
                 }
                 return legs;
             }
+            double cyclepoint;
+            public void WalkCycle(PointF newspine, float angle)
+            {
+                //Foot moves in a sin wave
+                //Knee moves in a smaller sin wave
+
+                float foot_sinmultiplier = (float)Math.Sin(cyclepoint);
+                foot = new PointF(startfoot.X + length * foot_sinmultiplier * MathF.Cos(angle), startfoot.Y + length * foot_sinmultiplier * MathF.Sin(angle));
+
+                float knee_sinmultiplier = (float)Math.Sin(cyclepoint - Math.PI / 2);
+                knee = new PointF(startknee.X + length * knee_sinmultiplier * MathF.Cos(angle), startknee.Y + length * knee_sinmultiplier * MathF.Sin(angle));
+
+                spineconnection = newspine;
+                cyclepoint += 0.3;
+            }
+
         }
     }
 }
