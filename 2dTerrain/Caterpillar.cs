@@ -9,6 +9,7 @@ namespace TerrainGenerator
         public static int pointsperbump = 8;
         public static int sectionwidth = 20;
         public static int sectionheight = 50;
+        private List<Leg> legs = new List<Leg>();
         public Caterpillar(int length, Point head)
         {
             if (length <= 2)
@@ -27,7 +28,7 @@ namespace TerrainGenerator
                     olddistances[i] = spine[i].DistanceTo(spine[i - 1]);
                 }
             }
-
+            legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 6);
         }
         public void MoveTowards(Point p)
         {
@@ -44,7 +45,19 @@ namespace TerrainGenerator
             for (int i = 1; i < spine.Count(); ++i)
             {
                 //Drag myself towards this new angle by speed
-                spine[i] = DragPoint(spine[i], spine[i - 1], speed, olddistances[i]);
+                PointF dragged = DragPoint(spine[i], spine[i - 1], speed, olddistances[i]);
+                var leg = legs.Where(l => l.spineconnection == spine[i]).ToList();
+                if (leg.Count() != 0)
+                {
+                    foreach (var side in leg)
+                    {
+                        PointF dx = new PointF(dragged.X - spine[i].X, dragged.Y - spine[i].Y);
+                        side.spineconnection = dragged;
+                        side.knee = new PointF(side.knee.X + dx.X, side.knee.Y + dx.Y);
+                        side.foot = new PointF(side.foot.X + dx.X, side.foot.Y + dx.Y);
+                    }
+                }
+                spine[i] = dragged;
             }
 
         }
@@ -104,7 +117,7 @@ namespace TerrainGenerator
         public void Draw(Bitmap result)
         {
             Graphics g = Graphics.FromImage(result);
-            PointF[] points = new RectangleF(spine[0].X - sectionwidth, spine[0].Y - sectionheight / 8, sectionwidth*2, sectionheight / 4).ToPolygon(10,10);
+            PointF[] points = new RectangleF(spine[0].X - sectionwidth, spine[0].Y - sectionheight / 8, sectionwidth * 2, sectionheight / 4).ToPolygon(10, 10);
             var angle = (float)CalculateAngle(spine[1], spine[0]);
             points = points.Rotate(angle);
 
@@ -114,13 +127,48 @@ namespace TerrainGenerator
                 var p = spine[i];
                 int dotsize = 10;
                 float spinesize = 0.02f;
-                points = new RectangleF(p.X - sectionwidth/2 * spinesize, p.Y - sectionheight/2, sectionwidth * spinesize, sectionheight).ToPolygon(20,20);
-                angle = (float)CalculateAngle(spine[i], spine[i-1]);
+                points = new RectangleF(p.X - sectionwidth / 2 * spinesize, p.Y - sectionheight / 2, sectionwidth * spinesize, sectionheight).ToPolygon(20, 20);
+                angle = (float)CalculateAngle(spine[i], spine[i - 1]);
                 points = points.Rotate(angle);
                 g.FillPolygon(new Pen(Color.Black).Brush, points);
-                g.DrawLine(new Pen(Color.Black, spinesize * sectionwidth /2), spine[i], spine[i-1]);
+                g.DrawLine(new Pen(Color.Black, spinesize * sectionwidth / 2), spine[i], spine[i - 1]);
 
                 //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(p.X - dotsize / 2, p.Y - dotsize / 2, dotsize, dotsize));
+            }
+            foreach (var leg in legs)
+            {
+                g.DrawLine(new Pen(Color.Black, 4), leg.spineconnection, leg.knee);
+                g.DrawLine(new Pen(Color.Black, 4), leg.knee, leg.foot);
+            }
+        }
+
+        class Leg
+        {
+            public PointF spineconnection;
+            public PointF knee;
+            public PointF foot;
+            private Leg(PointF spineconnection, PointF kee, PointF foot)
+            {
+                this.spineconnection = spineconnection;
+                this.knee = kee;
+                this.foot = foot;
+            }
+            public static List<Leg> BuildLegs(PointF[] spine, int length)
+            {
+                List<Leg> legs = new List<Leg>();
+                for (int i = 1; i < spine.Length / 10; ++i) //Start at one to not draw a leg on the head
+                {
+                    PointF spineconnection = spine[i * 10];
+
+                    //Assume spine[] y's are all the same
+                    for (int direction = -1; direction < 2; direction += 2)
+                    {
+                        PointF knee = new PointF(spineconnection.X - length / 4, spineconnection.Y + direction * length / 2); //Bend backwards slightly to start
+                        PointF foot = new PointF(spineconnection.X, spineconnection.Y + direction * length); //Leave same angle as start
+                        legs.Add(new Leg(spineconnection, knee, foot));
+                    }
+                }
+                return legs;
             }
         }
     }
