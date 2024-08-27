@@ -147,11 +147,13 @@ namespace TerrainGenerator
             }
             foreach (var leg in legs)
             {
-                g.DrawLine(new Pen(Color.Black, 4), leg.spineconnection, leg.knee);
-                g.DrawLine(new Pen(Color.Black, 4), leg.knee, leg.foot);
+                g.DrawLine(new Pen(Color.Black, 4), leg.spineconnection, leg.foot);
+                //g.DrawLine(new Pen(Color.Black, 4), leg.knee, leg.foot);
 
-                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
-                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
+                //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
+          //      g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
+          //      g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.startfoot.X - 5, leg.startfoot.Y - 5, 10, 10));
+          //      g.FillEllipse(new Pen(Color.Blue).Brush, new RectangleF(leg.swingdestination.X - 5, leg.swingdestination.Y - 5, 10, 10));
             }
         }
 
@@ -178,7 +180,7 @@ namespace TerrainGenerator
             public static List<Leg> BuildLegs(PointF[] spine, int length)
             {
                 List<Leg> legs = new List<Leg>();
-                const int legdst = 50;
+                const int legdst = 5;
                 for (int i = 1; i < spine.Length / legdst; ++i) //Start at one to not draw a leg on the head
                 {
                     PointF spineconnection = spine[i * legdst];
@@ -187,13 +189,16 @@ namespace TerrainGenerator
                     for (int direction = -1; direction < 2; direction += 2)
                     {
                         PointF knee = new PointF(spineconnection.X, spineconnection.Y + direction * length / 2);
-                        PointF foot = new PointF(spineconnection.X + length, spineconnection.Y + direction * length);
+                        PointF foot = new PointF(spineconnection.X + (length - 1), spineconnection.Y + direction * length);
                         legs.Add(new Leg(spineconnection, knee, foot, length));
                     }
                 }
                 return legs;
             }
             double cyclepoint;
+            double swingcycle = 0;
+            bool swinging = false;
+            public PointF swingdestination;
             public void WalkCycle(PointF newspine, float angle, double speed)
             {
                 //Assume foot starts futherest foward for cyclepoint%2PI==0
@@ -201,12 +206,34 @@ namespace TerrainGenerator
                 {
                     cyclepoint -= Math.PI * 2;
                 }
+
+                if (swinging)
+                {
+                    swingdestination = new PointF(startfoot.X + (length*0.75f) * MathF.Cos(angle), startfoot.Y + (length*0.75f) * MathF.Sin(angle));
+
+                    foot = DragPoint(foot, swingdestination, speed*5, 1);
+                    //foot = swingdestination;
+                    if (foot.DistanceTo(swingdestination) < 1)
+                    {
+                        swinging = false; //Let this be the new anchor
+                    }
+                }
+                //Completely ignore the knee for now
+                else if (spineconnection.DistanceTo(foot) > length*1.25)
+                {
+                    //Start swinging foot foward
+                    swinging = true;
+                }
+                spineconnection = newspine;
+                return;
+
+
                 if (cyclepoint >= Math.PI * (3.0 / 2.0)) //Only move foot for last quarter of rotation period
                 {
                     //Sin starts at cyclepoint = 3pi/2 should be 0, at cyclepoint 2pi should be 1
 
                     float sinmultiplier = (float)Math.Sin(cyclepoint - Math.PI * (3.0 / 2.0));
-                    foot = new PointF(rootfoot.X + length * sinmultiplier * MathF.Cos(angle), 
+                    foot = new PointF(rootfoot.X + length * sinmultiplier * MathF.Cos(angle),
                                       rootfoot.Y + length * sinmultiplier * MathF.Sin(angle));
                 }
                 else
