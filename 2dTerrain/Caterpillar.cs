@@ -29,7 +29,7 @@ namespace TerrainGenerator
                     olddistances[i] = spine[i].DistanceTo(spine[i - 1]);
                 }
             }
-            legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 3);
+            legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 5);
         }
         public void MoveTowards(Point p)
         {
@@ -63,7 +63,9 @@ namespace TerrainGenerator
                         side.startknee = new PointF((float)(dragged.X + Math.Cos(perpindicular) * side.length / 2), (float)(dragged.Y + Math.Sin(perpindicular) * side.length / 2));
                         side.startfoot = new PointF((float)(dragged.X + Math.Cos(perpindicular) * side.length), (float)(dragged.Y + Math.Sin(perpindicular) * side.length));
 
-                        side.WalkCycle(dragged, (float)angle_front);
+                        var legmovedst = Math.Min(speed, spine[i].DistanceTo(spine[i-1]) - olddistances[i]); //Throttle speed
+
+                        side.WalkCycle(dragged, (float)angle_front, legmovedst);
                     }
                 }
                 spine[i] = dragged;
@@ -149,8 +151,8 @@ namespace TerrainGenerator
                 g.DrawLine(new Pen(Color.Black, 4), leg.spineconnection, leg.knee);
                 g.DrawLine(new Pen(Color.Black, 4), leg.knee, leg.foot);
 
-                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
-                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
+                //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
+                //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
             }
         }
 
@@ -176,7 +178,7 @@ namespace TerrainGenerator
             public static List<Leg> BuildLegs(PointF[] spine, int length)
             {
                 List<Leg> legs = new List<Leg>();
-                const int legdst = 4;
+                const int legdst = 10;
                 for (int i = 1; i < spine.Length / legdst; ++i) //Start at one to not draw a leg on the head
                 {
                     PointF spineconnection = spine[i * legdst];
@@ -192,7 +194,7 @@ namespace TerrainGenerator
                 return legs;
             }
             double cyclepoint;
-            public void WalkCycle(PointF newspine, float angle)
+            public void WalkCycle(PointF newspine, float angle, double speed)
             {
                 //Foot moves in a sin wave
                 //Knee moves in a smaller sin wave
@@ -204,7 +206,7 @@ namespace TerrainGenerator
                 knee = new PointF(startknee.X + length * knee_sinmultiplier * MathF.Cos(angle), startknee.Y + length * knee_sinmultiplier * MathF.Sin(angle));
 
                 spineconnection = newspine;
-                cyclepoint += 0.3;
+                cyclepoint += 0.02 * speed;
             }
 
         }

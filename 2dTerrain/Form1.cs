@@ -31,7 +31,7 @@ namespace _2dTerrain
             Rock.Setup();
             caterpillar = new Caterpillar(100, new Point(600,500));
             updatetimer.Elapsed += UpdateTick;
-            updatetimer.AutoReset = true;
+            updatetimer.AutoReset = false;
             updatetimer.Start();
         }
         Caterpillar caterpillar;
@@ -51,6 +51,7 @@ namespace _2dTerrain
             caterpillar.Draw(result);
             pictureBox.Invalidate();
             updateruning = false;
+            updatetimer.Start();
         }
         public unsafe void GenerateMapGrid(object sender, EventArgs e)
         {
