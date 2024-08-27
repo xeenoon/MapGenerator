@@ -5,10 +5,9 @@ namespace TerrainGenerator
     class Caterpillar
     {
         public List<PointF> spine = new List<PointF>();
-        public double[] sintimes;
         public double[] olddistances;
         public static int pointsperbump = 8;
-        public static int sectionwidth = 50;
+        public static int sectionwidth = 20;
         public static int sectionheight = 50;
         public Caterpillar(int length, Point head)
         {
@@ -16,15 +15,13 @@ namespace TerrainGenerator
             {
                 throw new Exception("Length must be over 3");
             }
-            sintimes = new double[length];
             //Calculate the old distances
             olddistances = new double[length]; //array is one longer than required to avoid weird math later on. 
             //'i' index for distnace is the same as the tail of the dragged point
 
             for (int i = 0; i < length; ++i)
             {
-                sintimes[i] = (i % pointsperbump) * Math.PI / 4;
-                spine.Add(new PointF(head.X - sectionwidth * i, head.Y + (int)(Math.Sin(sintimes[i]) * sectionheight / 2)));
+                spine.Add(new PointF(head.X - sectionwidth * i, head.Y));
                 if (i >= 1)
                 {
                     olddistances[i] = spine[i].DistanceTo(spine[i - 1]);
@@ -107,7 +104,7 @@ namespace TerrainGenerator
         public void Draw(Bitmap result)
         {
             Graphics g = Graphics.FromImage(result);
-            PointF[] points = new RectangleF(spine[0].X - sectionwidth / 2, spine[0].Y - sectionheight / 8, sectionwidth, sectionheight / 4).ToPolygon();
+            PointF[] points = new RectangleF(spine[0].X - sectionwidth, spine[0].Y - sectionheight / 8, sectionwidth*2, sectionheight / 4).ToPolygon(10,10);
             var angle = (float)CalculateAngle(spine[1], spine[0]);
             points = points.Rotate(angle);
 
@@ -116,12 +113,14 @@ namespace TerrainGenerator
             {
                 var p = spine[i];
                 int dotsize = 10;
-                points = new RectangleF(p.X - sectionwidth/2, p.Y - sectionheight/2, sectionwidth, sectionheight).ToPolygon(10,10);
+                float spinesize = 0.02f;
+                points = new RectangleF(p.X - sectionwidth/2 * spinesize, p.Y - sectionheight/2, sectionwidth * spinesize, sectionheight).ToPolygon(20,20);
                 angle = (float)CalculateAngle(spine[i], spine[i-1]);
                 points = points.Rotate(angle);
-                g.DrawPolygon(new Pen(Color.Black), points);
+                g.FillPolygon(new Pen(Color.Black).Brush, points);
+                g.DrawLine(new Pen(Color.Black, spinesize * sectionwidth /2), spine[i], spine[i-1]);
 
-                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(p.X - dotsize / 2, p.Y - dotsize / 2, dotsize, dotsize));
+                //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(p.X - dotsize / 2, p.Y - dotsize / 2, dotsize, dotsize));
             }
         }
     }
