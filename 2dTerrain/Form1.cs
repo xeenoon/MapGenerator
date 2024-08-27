@@ -29,7 +29,7 @@ namespace _2dTerrain
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
-            caterpillar = new Caterpillar(10, new Point(600,500));
+            caterpillar = new Caterpillar(30, new Point(600,500));
             updatetimer.Elapsed += UpdateTick;
             updatetimer.AutoReset = true;
             updatetimer.Start();
