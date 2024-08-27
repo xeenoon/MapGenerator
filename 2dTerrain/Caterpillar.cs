@@ -36,7 +36,6 @@ namespace TerrainGenerator
             //Assume it will be called once a frame
             const double speed = 10;
 
-
             //Rotate the head towards the mouse
             const double rotationspeed = 0.05;
             spine[0] = RotateTowards(spine[1], spine[0], p, rotationspeed);
@@ -63,7 +62,7 @@ namespace TerrainGenerator
                         side.startknee = new PointF((float)(dragged.X + Math.Cos(perpindicular) * side.length / 2), (float)(dragged.Y + Math.Sin(perpindicular) * side.length / 2));
                         side.startfoot = new PointF((float)(dragged.X + Math.Cos(perpindicular) * side.length), (float)(dragged.Y + Math.Sin(perpindicular) * side.length));
 
-                        var legmovedst = Math.Min(speed, spine[i].DistanceTo(spine[i-1]) - olddistances[i]); //Throttle speed
+                        var legmovedst = Math.Min(speed, spine[i].DistanceTo(spine[i - 1]) - olddistances[i]); //Throttle speed
 
                         side.WalkCycle(dragged, (float)angle_front, legmovedst);
                     }
@@ -151,8 +150,8 @@ namespace TerrainGenerator
                 g.DrawLine(new Pen(Color.Black, 4), leg.spineconnection, leg.knee);
                 g.DrawLine(new Pen(Color.Black, 4), leg.knee, leg.foot);
 
-                //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
-                //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
+                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
+                g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
             }
         }
 
@@ -163,6 +162,7 @@ namespace TerrainGenerator
             public PointF foot;
             public PointF startfoot;
             public PointF startknee;
+            private PointF rootfoot;
             public int length;
             private Leg(PointF spineconnection, PointF kee, PointF foot, int length)
             {
@@ -178,7 +178,7 @@ namespace TerrainGenerator
             public static List<Leg> BuildLegs(PointF[] spine, int length)
             {
                 List<Leg> legs = new List<Leg>();
-                const int legdst = 10;
+                const int legdst = 50;
                 for (int i = 1; i < spine.Length / legdst; ++i) //Start at one to not draw a leg on the head
                 {
                     PointF spineconnection = spine[i * legdst];
@@ -187,7 +187,7 @@ namespace TerrainGenerator
                     for (int direction = -1; direction < 2; direction += 2)
                     {
                         PointF knee = new PointF(spineconnection.X, spineconnection.Y + direction * length / 2);
-                        PointF foot = new PointF(spineconnection.X, spineconnection.Y + direction * length);
+                        PointF foot = new PointF(spineconnection.X + length, spineconnection.Y + direction * length);
                         legs.Add(new Leg(spineconnection, knee, foot, length));
                     }
                 }
@@ -196,17 +196,60 @@ namespace TerrainGenerator
             double cyclepoint;
             public void WalkCycle(PointF newspine, float angle, double speed)
             {
+                //Assume foot starts futherest foward for cyclepoint%2PI==0
+                while (cyclepoint >= Math.PI * 2)
+                {
+                    cyclepoint -= Math.PI * 2;
+                }
+                if (cyclepoint >= Math.PI * (3.0 / 2.0)) //Only move foot for last quarter of rotation period
+                {
+                    //Sin starts at cyclepoint = 3pi/2 should be 0, at cyclepoint 2pi should be 1
+
+                    float sinmultiplier = (float)Math.Sin(cyclepoint - Math.PI * (3.0 / 2.0));
+                    foot = new PointF(rootfoot.X + length * sinmultiplier * MathF.Cos(angle), 
+                                      rootfoot.Y + length * sinmultiplier * MathF.Sin(angle));
+                }
+                else
+                {
+                    rootfoot = foot;
+                }
+
+                //Start point for knee should be halfway between foot and spine
+                PointF newknee = new PointF((spineconnection.X + foot.X) / 2, (spineconnection.Y + foot.Y) / 2);
+                knee = newknee;
+
+                var perpindicular = PerpendicularVector(spineconnection, rootfoot);
+                float knee_sinmultiplier = (float)Math.Sin(cyclepoint / 2.0 - Math.PI / 2); //Should be minimum for 0, and 0 for PI
+
+                knee = new PointF(newknee.X + perpindicular.X * knee_sinmultiplier * MathF.Cos(angle) * length / 4,
+                                  newknee.Y + perpindicular.Y * knee_sinmultiplier * MathF.Sin(angle) * length / 4);
+
+
                 //Foot moves in a sin wave
                 //Knee moves in a smaller sin wave
 
-                float foot_sinmultiplier = (float)Math.Sin(cyclepoint);
-                foot = new PointF(startfoot.X + length * foot_sinmultiplier * MathF.Cos(angle), startfoot.Y + length * foot_sinmultiplier * MathF.Sin(angle));
+                //float foot_sinmultiplier = (float)Math.Sin(cyclepoint);
+                //foot = new PointF(startfoot.X + length * foot_sinmultiplier * MathF.Cos(angle), startfoot.Y + length * foot_sinmultiplier * MathF.Sin(angle));
 
-                float knee_sinmultiplier = (float)Math.Sin(cyclepoint - Math.PI / 2);
-                knee = new PointF(startknee.X + length * knee_sinmultiplier * MathF.Cos(angle), startknee.Y + length * knee_sinmultiplier * MathF.Sin(angle));
+                //float knee_sinmultiplier = (float)Math.Sin(cyclepoint - Math.PI / 2);
+                ///knee = new PointF(startknee.X + length * knee_sinmultiplier * MathF.Cos(angle), startknee.Y + length * knee_sinmultiplier * MathF.Sin(angle));
 
                 spineconnection = newspine;
-                cyclepoint += 0.02 * speed;
+                cyclepoint += 0.05 * speed;
+            }
+            public static PointF PerpendicularVector(PointF p0, PointF p1)
+            {
+                float dx = p1.X - p0.X;
+                float dy = p1.Y - p0.Y;
+
+                // Calculate the perpendicular vector
+                PointF perpendicular = new PointF(-dy, dx);
+
+                // Calculate the magnitude of the perpendicular vector
+                float magnitude = (float)Math.Sqrt(perpendicular.X * perpendicular.X + perpendicular.Y * perpendicular.Y);
+
+                // Normalize the vector to make it a unit vector
+                return new PointF(perpendicular.X / magnitude, perpendicular.Y / magnitude);
             }
 
         }
