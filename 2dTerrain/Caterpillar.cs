@@ -147,13 +147,13 @@ namespace TerrainGenerator
             }
             foreach (var leg in legs)
             {
-                g.DrawLine(new Pen(Color.Black, 4), leg.spineconnection, leg.foot);
-                //g.DrawLine(new Pen(Color.Black, 4), leg.knee, leg.foot);
+                g.DrawLine(new Pen(Color.Black, 4), leg.spineconnection, leg.knee);
+                g.DrawLine(new Pen(Color.Black, 4), leg.knee, leg.foot);
 
                 //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
-          //      g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
-          //      g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.startfoot.X - 5, leg.startfoot.Y - 5, 10, 10));
-          //      g.FillEllipse(new Pen(Color.Blue).Brush, new RectangleF(leg.swingdestination.X - 5, leg.swingdestination.Y - 5, 10, 10));
+                //      g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
+                //      g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.startfoot.X - 5, leg.startfoot.Y - 5, 10, 10));
+                //      g.FillEllipse(new Pen(Color.Blue).Brush, new RectangleF(leg.swingdestination.X - 5, leg.swingdestination.Y - 5, 10, 10));
             }
         }
 
@@ -189,7 +189,7 @@ namespace TerrainGenerator
                     for (int direction = -1; direction < 2; direction += 2)
                     {
                         PointF knee = new PointF(spineconnection.X, spineconnection.Y + direction * length / 2);
-                        PointF foot = new PointF(spineconnection.X + (length - 1), spineconnection.Y + direction * length);
+                        PointF foot = new PointF(spineconnection.X + (length/2), spineconnection.Y + direction * length);
                         legs.Add(new Leg(spineconnection, knee, foot, length));
                     }
                 }
@@ -200,7 +200,7 @@ namespace TerrainGenerator
             bool swinging = false;
             public PointF swingdestination;
             public void WalkCycle(PointF newspine, float angle, double speed)
-            {           
+            {
                 //Assume foot starts futherest foward for cyclepoint % 2PI == 0
                 while (cyclepoint >= Math.PI * 2)
                 {
@@ -209,9 +209,9 @@ namespace TerrainGenerator
 
                 if (swinging)
                 {
-                    swingdestination = new PointF(startfoot.X + (length*0.75f) * MathF.Cos(angle), startfoot.Y + (length*0.75f) * MathF.Sin(angle));
+                    swingdestination = new PointF(startfoot.X + (length * 0.75f) * MathF.Cos(angle), startfoot.Y + (length * 0.75f) * MathF.Sin(angle));
 
-                    foot = DragPoint(foot, swingdestination, speed*5, 1);
+                    foot = DragPoint(foot, swingdestination, speed * 5, 1);
                     //foot = swingdestination;
                     if (foot.DistanceTo(swingdestination) < 1)
                     {
@@ -219,13 +219,24 @@ namespace TerrainGenerator
                     }
                 }
                 //Completely ignore the knee for now
-                else if (spineconnection.DistanceTo(foot) > length*1.25)
+                else if (spineconnection.DistanceTo(foot) > length * 1.25)
                 {
                     //Start swinging foot foward
                     swinging = true;
                 }
 
+                var legcentre = new PointF((foot.X + spineconnection.X) / 2f, (foot.Y + spineconnection.Y) / 2f);
+                var legsize = foot.DistanceTo(spineconnection);
+                knee = legcentre;
 
+                if (legsize < length)
+                {
+                    var perpindicular = PerpendicularVector(foot, spineconnection);
+
+                    float adjustment = (float)(Math.Sqrt(length*length - legsize*legsize)/2.0);
+                    knee.X += MathF.Cos(angle) * adjustment;
+                    knee.Y += MathF.Sin(angle) * adjustment;    
+                }
                 spineconnection = newspine;
                 return;
             }
