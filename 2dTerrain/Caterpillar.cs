@@ -189,7 +189,7 @@ namespace TerrainGenerator
                     for (int direction = -1; direction < 2; direction += 2)
                     {
                         PointF knee = new PointF(spineconnection.X, spineconnection.Y + direction * length / 2);
-                        PointF foot = new PointF(spineconnection.X + (length/2), spineconnection.Y + direction * length);
+                        PointF foot = new PointF(spineconnection.X + length, spineconnection.Y + direction * length);
                         legs.Add(new Leg(spineconnection, knee, foot, length));
                     }
                 }
@@ -211,7 +211,7 @@ namespace TerrainGenerator
                 {
                     swingdestination = new PointF(startfoot.X + (length * 0.75f) * MathF.Cos(angle), startfoot.Y + (length * 0.75f) * MathF.Sin(angle));
 
-                    foot = DragPoint(foot, swingdestination, speed * 5, 1);
+                    foot = DragPoint(foot, swingdestination, speed * 6, 1);
                     //foot = swingdestination;
                     if (foot.DistanceTo(swingdestination) < 1)
                     {
@@ -228,12 +228,13 @@ namespace TerrainGenerator
                 var legcentre = new PointF((foot.X + spineconnection.X) / 2f, (foot.Y + spineconnection.Y) / 2f);
                 var legsize = foot.DistanceTo(spineconnection);
                 knee = legcentre;
+                double desiredlength = length * 1.3;
 
-                if (legsize < length)
+                if (legsize < desiredlength)
                 {
                     var perpindicular = PerpendicularVector(foot, spineconnection);
 
-                    float adjustment = (float)(Math.Sqrt(length*length - legsize*legsize)/2.0);
+                    float adjustment = (float)(Math.Sqrt(desiredlength*desiredlength - legsize*legsize)/2.0);
                     knee.X += MathF.Cos(angle) * adjustment;
                     knee.Y += MathF.Sin(angle) * adjustment;    
                 }
