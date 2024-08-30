@@ -19,6 +19,22 @@ namespace TerrainGenerator
             }
             return new Stack<int>(intindices.OrderBy(c => c.Key).Select(c => c.Value).ToList());
         }
+        public static PointF UnitVector(this PointF p)
+        {
+            var magnitude = Math.Sqrt(p.X * p.X + p.Y * p.Y);
+            if (magnitude == 0)
+            {
+                return new PointF(0, 0); // To handle the case when the point is at the origin
+            }
+            return new PointF((float)(p.X / magnitude), (float)(p.Y / magnitude));
+        }
+        public static PointF Perpendicular(this PointF p)
+        {
+            // Returns a vector perpendicular to the original vector (rotated 90 degrees counterclockwise)
+            return new PointF(-p.Y, p.X);
+        }
+
+
         public static bool HasNvidiaGpu()
         {
             return false;
@@ -61,16 +77,16 @@ namespace TerrainGenerator
             const int detaillevel = 10;
             List<PointF> result = new List<PointF>();
             //Start on the left hand side, drawing points from rect.left
-            for(int i = 0; i < detaillevel+1; ++i) //+1 to add a point at the bottom left
+            for (int i = 0; i < detaillevel + 1; ++i) //+1 to add a point at the bottom left
             {
                 //Assume we start at the minimum of the sin curve, doing on full sin rotation
                 //y = sin(x-pi/2)
                 //x is min at 0, 2pi
-                double x = 2 * i * Math.PI/detaillevel;
+                double x = 2 * i * Math.PI / detaillevel;
 
-                var curve = (float)Math.Sin(x - Math.PI/2) * bump / 2;
-                
-                float y = (i * (rect.Bottom - rect.Top)/(detaillevel)) + rect.Top;
+                var curve = (float)Math.Sin(x - Math.PI / 2) * bump / 2;
+
+                float y = (i * (rect.Bottom - rect.Top) / (detaillevel)) + rect.Top;
                 result.Add(new PointF(rect.Left + curve, y));
             }
 
@@ -78,15 +94,15 @@ namespace TerrainGenerator
             result.Add(new PointF(rect.Right, rect.Bottom));
 
             //Start on the right hand side, drawing points from rect.right
-            for(int i = 0; i < detaillevel+1; ++i) //+1 to add a point to the top right
+            for (int i = 0; i < detaillevel + 1; ++i) //+1 to add a point to the top right
             {
                 //Assume we start at the minimum of the sin curve, doing on full sin rotation
                 //y = sin(x)
                 //x is 0 at 0, pi
-                double x = i * Math.PI/detaillevel;
+                double x = i * Math.PI / detaillevel;
 
                 var curve = (float)Math.Sin(x) * bezel;
-                float y = rect.Bottom - (i*(rect.Bottom - rect.Top)/detaillevel); //draw bottom up
+                float y = rect.Bottom - (i * (rect.Bottom - rect.Top) / detaillevel); //draw bottom up
                 result.Add(new PointF(rect.Right + curve, y));
             }
             return result.ToArray();
