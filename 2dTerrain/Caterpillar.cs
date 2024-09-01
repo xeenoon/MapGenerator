@@ -157,6 +157,45 @@ namespace TerrainGenerator
             }
             return angle;
         }
+        public PointF[] CurvePolygon(PointF centre, int centrewidth, int length, int endoffset, double angle, int detail = 5)
+        {
+            List<PointF> result = new List<PointF>();
+            result.Add(new PointF(centre.X, centre.Y));
+            double perpindicular = angle + Math.PI / 2;
+            float offsetX = (float)(endoffset * Math.Cos(perpindicular));
+            float offsetY = (float)(endoffset * Math.Sin(perpindicular));
+
+            //Right line
+            for (int i = 0; i < detail; ++i)
+            {
+                double percentagedistance = i / (double)detail;
+                double sinoffset = Math.Sin(Math.PI / 2 * percentagedistance);
+
+                // Calculate the new x and y positions using the angle
+                float x = (float)(centre.X + (length / 2) * percentagedistance * Math.Cos(angle) + offsetX * sinoffset);
+                float y = (float)(centre.Y + (length / 2) * percentagedistance * Math.Sin(angle) + offsetY * sinoffset);
+                result.Add(new PointF(x, y));
+            }
+
+            //Left line
+            for (int i = 0; i < detail; ++i)
+            {
+                double percentagedistance = i / (double)detail;
+                double sinoffset = Math.Sin(Math.PI / 2 * percentagedistance);
+
+                // Calculate the new x and y positions using the angle
+                float x = (float)(centre.X - (length / 2) * percentagedistance * Math.Cos(angle) + offsetX * sinoffset);
+                float y = (float)(centre.Y - (length / 2) * percentagedistance * Math.Sin(angle) + offsetY * sinoffset);
+                result.Add(new PointF(x, y));
+            }
+            float directionX = (float)Math.Cos(angle);
+            float directionY = (float)Math.Sin(angle);
+
+            return result
+                .OrderBy(p => (p.X - centre.X) * directionX + (p.Y - centre.Y) * directionY)
+                .ToArray();
+        }
+
         public void Draw(Bitmap result)
         {
             Graphics g = Graphics.FromImage(result);
@@ -167,6 +206,10 @@ namespace TerrainGenerator
             //g.DrawPolygon(new Pen(Color.Black), points);
             for (int i = 1; i < spine.Count(); ++i)
             {
+                if (i % 5 != 0)
+                {
+                    continue;
+                }
                 int width = sectionwidth;
                 int height = sectionheight;
                 const double tailsize = 0.2;
@@ -178,12 +221,18 @@ namespace TerrainGenerator
                 }
 
                 var p = spine[i];
-                int dotsize = 10;
                 float spinesize = 0.02f;
-                points = new RectangleF(p.X - width / 2 * spinesize, p.Y - height / 2, width * spinesize, height).ToPolygon(20, 20);
                 angle = (float)CalculateAngle(spine[i], spine[i - 1]);
-                points = points.Rotate(angle);
-                g.FillPolygon(new Pen(Color.Black).Brush, points);
+                points = CurvePolygon(p, sectionwidth, sectionheight, 20, angle + Math.PI / 2);
+                //points = new RectangleF(p.X - (width / 2) * spinesize, p.Y - height / 2, width * spinesize, height).ToPolygon(15, 20);
+                points = points.Rotate(angle, spine[i]);
+
+                for (int j = 0; j < points.Length - 1; ++j)
+                {
+                    g.DrawLine(new Pen(Color.Red, 3), points[j], points[j + 1]);
+                }
+
+                //g.FillPolygon(new Pen(Color.Black).Brush, points);
                 g.DrawLine(new Pen(Color.Black, spinesize * width / 2), spine[i], spine[i - 1]);
 
                 //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(p.X - dotsize / 2, p.Y - dotsize / 2, dotsize, dotsize));

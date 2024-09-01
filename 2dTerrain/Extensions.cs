@@ -136,11 +136,21 @@ namespace TerrainGenerator
                 bottomLeft
             };
         }
-        public static PointF[] Rotate(this PointF[] polygon, float theta)
+        public static PointF[] Rotate(this PointF[] polygon, float theta, PointF? centre = null)
         {
-            // Calculate the centroid of the polygon
-            float centroidX = polygon.Average(p => p.X);
-            float centroidY = polygon.Average(p => p.Y);
+            float centroidX = 0;
+            float centroidY = 0;
+            if (centre.HasValue)
+            {
+                centroidX = centre.Value.X;
+                centroidY = centre.Value.Y;
+            }
+            else
+            {
+                // Calculate the centroid of the polygon
+                centroidX = polygon.Average(p => p.X);
+                centroidY = polygon.Average(p => p.Y);
+            }
             PointF centroid = new PointF(centroidX, centroidY);
 
             float cosTheta = (float)Math.Cos(theta);
