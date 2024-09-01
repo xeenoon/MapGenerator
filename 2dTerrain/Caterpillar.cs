@@ -165,18 +165,6 @@ namespace TerrainGenerator
             float offsetX = (float)(endoffset * Math.Cos(perpindicular));
             float offsetY = (float)(endoffset * Math.Sin(perpindicular));
 
-            //Right line
-            for (int i = 0; i < detail; ++i)
-            {
-                double percentagedistance = i / (double)detail;
-                double sinoffset = Math.Sin(Math.PI / 2 * percentagedistance);
-
-                // Calculate the new x and y positions using the angle
-                float x = (float)(centre.X + (length / 2) * percentagedistance * Math.Cos(angle) + offsetX * sinoffset);
-                float y = (float)(centre.Y + (length / 2) * percentagedistance * Math.Sin(angle) + offsetY * sinoffset);
-                result.Add(new PointF(x, y));
-            }
-
             //Left line
             for (int i = 0; i < detail; ++i)
             {
@@ -184,16 +172,38 @@ namespace TerrainGenerator
                 double sinoffset = Math.Sin(Math.PI / 2 * percentagedistance);
 
                 // Calculate the new x and y positions using the angle
-                float x = (float)(centre.X - (length / 2) * percentagedistance * Math.Cos(angle) + offsetX * sinoffset);
-                float y = (float)(centre.Y - (length / 2) * percentagedistance * Math.Sin(angle) + offsetY * sinoffset);
+                float x = (float)(centre.X - Math.Abs((length / 2) * percentagedistance * Math.Cos(angle) + offsetX * sinoffset));
+                float y = (float)(centre.Y - Math.Abs((length / 2) * percentagedistance * Math.Sin(angle) + offsetY * sinoffset));
                 result.Add(new PointF(x, y));
             }
-            float directionX = (float)Math.Cos(angle);
-            float directionY = (float)Math.Sin(angle);
+            for (int i = 1; i < detail + 1; ++i)
+            {
+                // Reflects a vector `p` about the line at `angle` degrees
+                var p = result[i];
+                var centre_p = new PointF(p.X - centre.X, p.Y - centre.Y);
+
+                // Convert angle to radians
+                double angleRadians = angle * Math.PI / 180.0;
+
+                // Calculate the reflection matrix components
+                double cosAngle = Math.Cos(angleRadians);
+                double sinAngle = Math.Sin(angleRadians);
+
+                // Compute the reflected vector
+                double x = centre_p.X;
+                double y = centre_p.Y;
+                double reflectedX = x * (cosAngle * cosAngle - sinAngle * sinAngle) + y * 2 * cosAngle * sinAngle;
+                double reflectedY = x * 2 * cosAngle * sinAngle + y * (sinAngle * sinAngle - cosAngle * cosAngle);
+
+                // Create the reflected point
+                var reflectedPoint = new PointF((float)(centre.X + reflectedX), (float)(centre.Y + reflectedY));
+
+                result.Add(reflectedPoint);
+            }
 
             return result
-                .OrderBy(p => (p.X - centre.X) * directionX + (p.Y - centre.Y) * directionY)
-                .ToArray();
+                   .OrderBy(p => Math.Atan2(p.Y - centre.Y, p.X - centre.X)) // Calculate angle of each point with respect to the centre
+                   .ToArray();
         }
 
         public void Draw(Bitmap result)
@@ -208,7 +218,7 @@ namespace TerrainGenerator
             {
                 if (i % 5 != 0)
                 {
-                    continue;
+                  //  continue;
                 }
                 int width = sectionwidth;
                 int height = sectionheight;
