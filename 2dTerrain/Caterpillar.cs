@@ -1,10 +1,11 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 
 namespace TerrainGenerator
 {
-    class Caterpillar
+    partial class Caterpillar
     {
         public List<PointF> spine = new List<PointF>();
         public double[] olddistances;
@@ -12,6 +13,7 @@ namespace TerrainGenerator
         public static int sectionwidth = 20;
         public static int sectionheight = 50;
         private List<Leg> legs = new List<Leg>();
+        public Tail tail;
         public Caterpillar(int length, Point head)
         {
             if (length <= 2)
@@ -30,6 +32,7 @@ namespace TerrainGenerator
                     olddistances[i] = spine[i].DistanceTo(spine[i - 1]);
                 }
             }
+            tail = new Tail(10, spine.Last(), sectionwidth, sectionheight);
             legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 5);
         }
         int time = 0;
@@ -43,9 +46,9 @@ namespace TerrainGenerator
             const double rotationspeed = 0.05;
             spine[0] = RotateTowards(spine[1], spine[0], p, rotationspeed);
             double sinmodifier = 0;
-            if(((PointF)p).DistanceTo(spine[0]) > 100)
+            if (((PointF)p).DistanceTo(spine[0]) > 100)
             {
-                sinmodifier = Math.Sin(time/10.0) / 4;
+                //sinmodifier = Math.Sin(time/10.0) / 4;
             }
             spine[0] = DragPoint(spine[0], CalculateAngle(spine[1], spine[0]) + sinmodifier, speed);
 
@@ -74,9 +77,19 @@ namespace TerrainGenerator
                         side.WalkCycle(dragged, (float)angle_front, legmovedst);
                     }
                 }
+                if (i == spine.Count() - 1)
+                {
+                    for (int j = 0; j < tail.points.Count(); ++j)
+                    {
+                        double angle_front = CalculateAngle(spine[i], spine[i - 1]);
+                        tail.start_points[j] = new PointF((float)(dragged.X - Math.Cos(angle_front) * tail.sectionwidth * j),
+                                                          (float)(dragged.Y - Math.Sin(angle_front) * tail.sectionwidth * j));
+                    }
+                    tail.Swing();
+                }
+
                 spine[i] = dragged;
             }
-
         }
         private static PointF DragPoint(PointF p0, PointF p1, double speed, double minDistance)
         {
@@ -141,14 +154,24 @@ namespace TerrainGenerator
             g.DrawPolygon(new Pen(Color.Black), points);
             for (int i = 1; i < spine.Count(); ++i)
             {
+                int width = sectionwidth;
+                int height = sectionheight;
+                const double tailsize = 0.2;
+                if (((double)i) / spine.Count() >= (1 - tailsize)) //Only stretch down the last 0.1
+                {
+                    double scalar = (spine.Count() - i) / (tailsize * spine.Count());
+                    width = (int)(width * scalar);
+                    height = (int)(height * scalar);
+                }
+
                 var p = spine[i];
                 int dotsize = 10;
                 float spinesize = 0.02f;
-                points = new RectangleF(p.X - sectionwidth / 2 * spinesize, p.Y - sectionheight / 2, sectionwidth * spinesize, sectionheight).ToPolygon(20, 20);
+                points = new RectangleF(p.X - width / 2 * spinesize, p.Y - height / 2, width * spinesize, height).ToPolygon(20, 20);
                 angle = (float)CalculateAngle(spine[i], spine[i - 1]);
                 points = points.Rotate(angle);
                 g.FillPolygon(new Pen(Color.Black).Brush, points);
-                g.DrawLine(new Pen(Color.Black, spinesize * sectionwidth / 2), spine[i], spine[i - 1]);
+                g.DrawLine(new Pen(Color.Black, spinesize * width / 2), spine[i], spine[i - 1]);
 
                 //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(p.X - dotsize / 2, p.Y - dotsize / 2, dotsize, dotsize));
             }
@@ -166,183 +189,40 @@ namespace TerrainGenerator
                 //      g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.startfoot.X - 5, leg.startfoot.Y - 5, 10, 10));
                 //      g.FillEllipse(new Pen(Color.Blue).Brush, new RectangleF(leg.swingdestination.X - 5, leg.swingdestination.Y - 5, 10, 10));
             }
-        }
-
-        class Leg
-        {
-            public PointF spineconnection;
-            public PointF knee;
-            public PointF foot;
-            public PointF startfoot;
-            public PointF[] toes = new PointF[3];
-            public PointF[] toe_start = new PointF[3];
-            public int length;
-            public int toelength;
-            private Leg(PointF spineconnection, PointF kee, PointF foot, PointF[] toes, int length)
+            for (int i = 1; i < tail.length; ++i)
             {
-                this.spineconnection = spineconnection;
-                this.knee = kee;
-                this.foot = foot;
-                this.length = length;
-                toelength = length / 6;
-                this.toes = toes;
-
-                startfoot = foot;
+                g.DrawLine(new Pen(Color.Black, 4), tail.points[i - 1], tail.points[i]);
             }
-            public static List<Leg> BuildLegs(PointF[] spine, int length)
+            var lastpoint = tail.points[tail.points.Count() - 1];
+            float radius = 10;
+
+            g.FillEllipse(new Pen(Color.Black).Brush, new RectangleF(lastpoint.X - radius, lastpoint.Y - radius, radius*2, radius*2));
+
+            // Calculate and draw the 6 triangles
+            int numTriangles = 6;
+            for (int i = 0; i < numTriangles; i++)
             {
-                List<Leg> legs = new List<Leg>();
-                const int legdst = 5;
-                for (int i = 1; i < spine.Length / legdst; ++i) //Start at one to not draw a leg on the head
-                {
-                    PointF spineconnection = spine[i * legdst];
+                // Calculate the angle for this triangle
+                double triangle_angle = i * 2 * Math.PI / numTriangles;
 
-                    //Assume spine[] y's are all the same
-                    for (int direction = -1; direction < 2; direction += 2)
-                    {
-                        PointF knee = new PointF(spineconnection.X, spineconnection.Y + direction * length / 2);
-                        PointF foot = new PointF(spineconnection.X, spineconnection.Y + direction * length);
-                        PointF[] toes = new PointF[3] { new PointF(foot.X - length / 8, foot.Y + length / 8), new PointF(foot.X, foot.Y + length / 8), new PointF(foot.X + length / 8, foot.Y + length / 8) };
-                        legs.Add(new Leg(spineconnection, knee, foot, toes, length));
-                    }
-                }
-                return legs;
+                // Calculate the two points on the circle where the triangle base meets
+                PointF p1 = new PointF(
+                    lastpoint.X + radius * (float)Math.Cos(triangle_angle - Math.PI / numTriangles),
+                    lastpoint.Y + radius * (float)Math.Sin(triangle_angle - Math.PI / numTriangles));
+
+                PointF p2 = new PointF(
+                    lastpoint.X + radius * (float)Math.Cos(triangle_angle + Math.PI / numTriangles),
+                    lastpoint.Y + radius * (float)Math.Sin(triangle_angle + Math.PI / numTriangles));
+
+                // Calculate the point where the triangle's apex is (outside the circle)
+                PointF apex = new PointF(
+                    lastpoint.X + 1.5f * radius * (float)Math.Cos(triangle_angle),
+                    lastpoint.Y + 1.5f * radius * (float)Math.Sin(triangle_angle));
+
+                // Draw the triangle
+                PointF[] trianglePoints = { p1, p2, apex };
+                g.FillPolygon(new Pen(Color.Black).Brush, trianglePoints);
             }
-            double cyclepoint;
-            double swingcycle = 0;
-            bool swinging = false;
-            public PointF swingdestination;
-            double CalculateAngleDifference(double angle1, double angle2)
-            {
-                return Math.Atan2(Math.Sin(angle2-angle1), Math.Cos(angle2-angle1));
-                double diff = angle1 - angle2;
-                diff = (diff + Math.PI) % (2 * Math.PI) - Math.PI;
-                return Math.Abs(diff);
-            }
-            public void WalkCycle(PointF newspine, float angle, double speed)
-            {
-                //Assume foot starts futherest foward for cyclepoint % 2PI == 0
-                while (cyclepoint >= Math.PI * 2)
-                {
-                    cyclepoint -= Math.PI * 2;
-                }
-
-                if (swinging)
-                {
-                    swingdestination = new PointF(startfoot.X + (length * 0.75f) * MathF.Cos(angle), startfoot.Y + (length * 0.75f) * MathF.Sin(angle));
-                    var newfoot = DragPoint(foot, swingdestination, speed * 6, 1);
-
-                    for (int i = 0; i < toes.Count(); ++i)
-                    {
-                        toes[i] = new PointF(toes[i].X + newfoot.X - foot.X, toes[i].Y + newfoot.Y - foot.Y);
-                        continue;
-                    }
-                    foot = newfoot;
-
-                    //foot = swingdestination;
-                    if (foot.DistanceTo(swingdestination) < 1)
-                    {
-                        swinging = false; //Let this be the new anchor
-                    }
-                }
-                //Completely ignore the knee for now
-                else if (spineconnection.DistanceTo(foot) > length * 1.25)
-                {
-                    //Start swinging foot foward
-                    swinging = true;
-
-                    //Set the default values for the feet
-                    var centre_toe = new PointF((float)Math.Cos(angle), (float)Math.Sin(angle)).UnitVector();
-                    toe_start[0] = new PointF(centre_toe.X * toelength + foot.X, centre_toe.Y * toelength + foot.Y);
-
-                    var left_toe = new PointF(
-                        (float)(centre_toe.X * Math.Cos(Math.PI / 6) - centre_toe.Y * Math.Sin(Math.PI / 6)),
-                        (float)(centre_toe.X * Math.Sin(Math.PI / 6) + centre_toe.Y * Math.Cos(Math.PI / 6))
-                    );
-                    toe_start[1] = new PointF(left_toe.X * toelength + foot.X, left_toe.Y * toelength + foot.Y);
-
-                    // Rotate the vector by -30 degrees (counterclockwise)
-                    var right_toe = new PointF(
-                        (float)(centre_toe.X * Math.Cos(-Math.PI / 6) - centre_toe.Y * Math.Sin(-Math.PI / 6)),
-                        (float)(centre_toe.X * Math.Sin(-Math.PI / 6) + centre_toe.Y * Math.Cos(-Math.PI / 6))
-                    );
-                    toe_start[2] = new PointF(right_toe.X * toelength + foot.X, right_toe.Y * toelength + foot.Y);
-
-                    for (int i = 0; i < 3; ++i)
-                    {
-                        toes[i] = toe_start[i]; //Holy shit this is inefficient
-                    }
-                }
-                else
-                {
-                    //Rotate the toes
-                    int direction = 1;
-                    double ft = CalculateAngle(foot, toes[1]);
-                    double fk = CalculateAngle(foot, knee);
-
-                    // Calculate the shortest distance between the angles
-                    double distance = CalculateAngleDifference(ft, fk);
-
-                    // Check if increasing `ft` by 180 degrees would intersect `fk`
-                    bool intersects = (CalculateAngleDifference(ft + Math.PI, fk) < distance) && (ft < fk);
-                    if (intersects) //Would increasing out angle by 180 degrees intersect with fk?
-                    {
-                        direction = -1;
-                    }
-                    else
-                    {
-                        direction = 1;
-                    }
-
-                    for (int i = 0; i < toes.Count(); ++i)
-                    {
-                        var toe = toes[i];
-
-                        var ft_angle = CalculateAngle(foot, toe);
-
-                        // Determine the direction to rotate ft_angle away from kf_angle
-                        ft_angle += speed * 0.01 * direction;
-
-                        // Calculate the new position of the toe using the new angle
-                        var newX = foot.X + (float)(toelength * Math.Cos(ft_angle));
-                        var newY = foot.Y + (float)(toelength * Math.Sin(ft_angle));
-
-                        // Update toe to the new position
-                        toes[i] = new PointF(newX, newY);
-                    }
-                }
-
-                var legcentre = new PointF((foot.X + spineconnection.X) / 2f, (foot.Y + spineconnection.Y) / 2f);
-                var legsize = foot.DistanceTo(spineconnection);
-                knee = legcentre;
-                double desiredlength = length * 1.3;
-
-                if (legsize < desiredlength)
-                {
-                    var perpindicular = PerpendicularVector(foot, spineconnection);
-
-                    float adjustment = (float)(Math.Sqrt(desiredlength * desiredlength - legsize * legsize) / 2.0);
-                    knee.X += MathF.Cos(angle) * adjustment;
-                    knee.Y += MathF.Sin(angle) * adjustment;
-                }
-                spineconnection = newspine;
-                return;
-            }
-            public static PointF PerpendicularVector(PointF p0, PointF p1)
-            {
-                float dx = p1.X - p0.X;
-                float dy = p1.Y - p0.Y;
-
-                // Calculate the perpendicular vector
-                PointF perpendicular = new PointF(-dy, dx);
-
-                // Calculate the magnitude of the perpendicular vector
-                float magnitude = (float)Math.Sqrt(perpendicular.X * perpendicular.X + perpendicular.Y * perpendicular.Y);
-
-                // Normalize the vector to make it a unit vector
-                return new PointF(perpendicular.X / magnitude, perpendicular.Y / magnitude);
-            }
-
         }
     }
 }
