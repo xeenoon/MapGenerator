@@ -32,15 +32,22 @@ namespace TerrainGenerator
             }
             legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 5);
         }
+        int time = 0;
         public void MoveTowards(Point p)
         {
+            ++time;
             //Assume it will be called once a frame
             const double speed = 10;
 
             //Rotate the head towards the mouse
             const double rotationspeed = 0.05;
             spine[0] = RotateTowards(spine[1], spine[0], p, rotationspeed);
-            spine[0] = DragPoint(spine[0], CalculateAngle(spine[1], spine[0]), speed);
+            double sinmodifier = 0;
+            if(((PointF)p).DistanceTo(spine[0]) > 100)
+            {
+                sinmodifier = Math.Sin(time/10.0) / 4;
+            }
+            spine[0] = DragPoint(spine[0], CalculateAngle(spine[1], spine[0]) + sinmodifier, speed);
 
             //Recursively go through all spine points, moving it towards the LAST one
             for (int i = 1; i < spine.Count(); ++i)
