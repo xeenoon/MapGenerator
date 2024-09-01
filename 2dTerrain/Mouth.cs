@@ -51,11 +51,14 @@ namespace TerrainGenerator
             public void Bite()
             {
                 time++;
+                double sinvalue = Math.Sin(time/7.0);
+                sinvalue *= sinvalue;
+
                 var jawtopangle = CalculateAngle(head, start_jawtop);
-                jawtopangle -= jawangle * Math.Abs(Math.Sin(time / 70.0));
+                jawtopangle -= jawangle * Math.Abs(sinvalue);
                 jawtop = new PointF((float)(Math.Cos(jawtopangle) * jawlength + head.X), (float)(Math.Sin(jawtopangle) * jawlength + head.Y));
                 var jawbotangle = CalculateAngle(head, start_jawbot);
-                jawbotangle += jawangle * Math.Abs(Math.Sin(time / 70.0));
+                jawbotangle += jawangle * Math.Abs(sinvalue);
 
                 jawbot = new PointF((float)(Math.Cos(jawbotangle) * jawlength + head.X), (float)(Math.Sin(jawbotangle) * jawlength + head.Y));
                 return;

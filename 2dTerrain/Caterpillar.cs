@@ -35,7 +35,7 @@ namespace TerrainGenerator
                 }
             }
             tail = new Tail(10, spine.Last(), sectionwidth, sectionheight);
-            mouth = new Mouth(head, (int)(sectionwidth * 1.5f));
+            mouth = new Mouth(head, (int)(sectionwidth * 3f));
             legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 5);
         }
         int time = 0;
@@ -237,23 +237,11 @@ namespace TerrainGenerator
                 g.FillPolygon(new Pen(Color.Black).Brush, trianglePoints);
             }
 
-
-
-            //g.DrawPolygon(new Pen(Color.Black, 4), jawtop);
-            //g.DrawPolygon(new Pen(Color.Black, 4), jawbot);
-
-            //g.DrawLine(new Pen(Color.Green, 4), mouth.head, mouth.jawtop);
-            //g.DrawLine(new Pen(Color.Green, 4), mouth.head, mouth.jawbot);
-
-            //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.head.X - 5, mouth.head.Y - 5, 10, 10));
-            //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawtop.X - 5, mouth.jawtop.Y - 5, 10, 10));
-            //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawbot.X - 5, mouth.jawbot.Y - 5, 10, 10));
-
             var topmid = CalculatePerpendicularMidpoint(mouth.head, mouth.jawtop, 5, false);
             var top_quarter = CalculatePerpendicularMidpoint(mouth.head, topmid, 8, false);
             var top_third_quarter = CalculatePerpendicularMidpoint(topmid, mouth.jawtop, 8, false);
 
-            var topmid_outside = CalculatePerpendicularMidpoint(mouth.head, mouth.jawtop, 10, false);
+            var topmid_outside = CalculatePerpendicularMidpoint(mouth.head, mouth.jawtop, 20, false);
             var top_quarter_outside = CalculatePerpendicularMidpoint(mouth.head, topmid, 16, false);
             var top_third_quarter_outside = CalculatePerpendicularMidpoint(topmid, mouth.jawtop, 16, false);
 
@@ -261,15 +249,15 @@ namespace TerrainGenerator
             var bot_quarter = CalculatePerpendicularMidpoint(mouth.head, botmid, 8, true);
             var bot_third_quarter = CalculatePerpendicularMidpoint(botmid, mouth.jawbot, 8, true);
 
-            var botmid_outside = CalculatePerpendicularMidpoint(mouth.head, mouth.jawbot, 10, true);
+            var botmid_outside = CalculatePerpendicularMidpoint(mouth.head, mouth.jawbot, 20, true);
             var bot_quarter_outside = CalculatePerpendicularMidpoint(mouth.head, botmid, 16, true);
             var bot_third_quarter_outside = CalculatePerpendicularMidpoint(botmid, mouth.jawbot, 16, true);
 
             PointF[] topjaw = new PointF[] { mouth.head, top_quarter, topmid, top_third_quarter, mouth.jawtop, top_third_quarter_outside, topmid_outside, top_quarter_outside };
-            g.DrawPolygon(new Pen(Color.Black), topjaw);
+            g.FillPolygon(new Pen(Color.Black).Brush, topjaw);
 
             PointF[] botjaw = new PointF[] { mouth.head, bot_quarter, botmid, bot_third_quarter, mouth.jawbot, bot_third_quarter_outside, botmid_outside, bot_quarter_outside };
-            g.DrawPolygon(new Pen(Color.Black), botjaw);
+            g.FillPolygon(new Pen(Color.Black).Brush, botjaw);
 
             PointF[] jawtop = new PointF[] { mouth.head, topmid, mouth.jawtop };
             PointF[] jawbot = new PointF[] { mouth.head, botmid, mouth.jawtop };
