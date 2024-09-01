@@ -49,9 +49,6 @@ namespace TerrainGenerator
             double CalculateAngleDifference(double angle1, double angle2)
             {
                 return Math.Atan2(Math.Sin(angle2 - angle1), Math.Cos(angle2 - angle1));
-                double diff = angle1 - angle2;
-                diff = (diff + Math.PI) % (2 * Math.PI) - Math.PI;
-                return Math.Abs(diff);
             }
             public void WalkCycle(PointF newspine, float angle, double speed)
             {

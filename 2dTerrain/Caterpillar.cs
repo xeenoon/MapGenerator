@@ -48,13 +48,8 @@ namespace TerrainGenerator
             //Rotate the head towards the mouse
             const double rotationspeed = 0.05;
             spine[0] = RotateTowards(spine[1], spine[0], p, rotationspeed);
-            double sinmodifier = 0;
-            if (((PointF)p).DistanceTo(spine[0]) > 100)
-            {
-                //sinmodifier = Math.Sin(time/10.0) / 4;
-            }
 
-            double neckangle = CalculateAngle(spine[1], spine[0]) + sinmodifier;
+            double neckangle = CalculateAngle(spine[1], spine[0]);
             var newhead = DragPoint(spine[0], neckangle, speed);
 
             mouth.head = newhead;
@@ -213,13 +208,8 @@ namespace TerrainGenerator
             var angle = (float)CalculateAngle(spine[1], spine[0]);
             points = points.Rotate(angle);
 
-            //g.DrawPolygon(new Pen(Color.Black), points);
             for (int i = 1; i < spine.Count(); ++i)
             {
-                if (i % 5 != 0)
-                {
-                  //  continue;
-                }
                 int width = sectionwidth;
                 int height = sectionheight;
                 const double tailsize = 0.2;
@@ -234,18 +224,14 @@ namespace TerrainGenerator
                 float spinesize = 0.02f;
                 angle = (float)CalculateAngle(spine[i], spine[i - 1]);
                 points = CurvePolygon(p, sectionwidth, sectionheight, 20, angle + Math.PI / 2);
-                //points = new RectangleF(p.X - (width / 2) * spinesize, p.Y - height / 2, width * spinesize, height).ToPolygon(15, 20);
                 points = points.Rotate(angle, spine[i]);
 
                 for (int j = 0; j < points.Length - 1; ++j)
                 {
-                    g.DrawLine(new Pen(Color.Red, 3), points[j], points[j + 1]);
+                    g.DrawLine(new Pen(Color.Black, 3), points[j], points[j + 1]);
                 }
 
-                //g.FillPolygon(new Pen(Color.Black).Brush, points);
                 g.DrawLine(new Pen(Color.Black, spinesize * width / 2), spine[i], spine[i - 1]);
-
-                //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(p.X - dotsize / 2, p.Y - dotsize / 2, dotsize, dotsize));
             }
             foreach (var leg in legs)
             {
@@ -255,11 +241,6 @@ namespace TerrainGenerator
                 {
                     g.DrawLine(new Pen(Color.Black, 4), leg.foot, toe);
                 }
-
-                //g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.knee.X - 5, leg.knee.Y - 5, 10, 10));
-                //      g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(leg.foot.X - 5, leg.foot.Y - 5, 10, 10));
-                //      g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(leg.startfoot.X - 5, leg.startfoot.Y - 5, 10, 10));
-                //      g.FillEllipse(new Pen(Color.Blue).Brush, new RectangleF(leg.swingdestination.X - 5, leg.swingdestination.Y - 5, 10, 10));
             }
             for (int i = 1; i < tail.length; ++i)
             {
@@ -317,10 +298,6 @@ namespace TerrainGenerator
 
             PointF[] botjaw = new PointF[] { mouth.head, bot_quarter, botmid, bot_third_quarter, mouth.jawbot, bot_third_quarter_outside, botmid_outside, bot_quarter_outside };
             g.FillPolygon(new Pen(Color.Black).Brush, botjaw);
-
-            PointF[] jawtop = new PointF[] { mouth.head, topmid, mouth.jawtop };
-            PointF[] jawbot = new PointF[] { mouth.head, botmid, mouth.jawtop };
-
         }
         public static PointF CalculatePerpendicularMidpoint(PointF point1, PointF point2, float offset, bool right)
         {
