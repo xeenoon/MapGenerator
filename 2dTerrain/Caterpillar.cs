@@ -35,7 +35,7 @@ namespace TerrainGenerator
                 }
             }
             tail = new Tail(10, spine.Last(), sectionwidth, sectionheight);
-            mouth = new Mouth(head, new PointF(head.X + sectionwidth, head.Y));
+            mouth = new Mouth(head, (int)(sectionwidth*1.5f));
             legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 5);
         }
         int time = 0;
@@ -58,10 +58,11 @@ namespace TerrainGenerator
             var newhead = DragPoint(spine[0], neckangle, speed);
             
             mouth.head   = newhead;
-            mouth.jawtop = new PointF((float)(newhead.X + Math.Cos(Math.PI/6 + neckangle) * mouth.length),  (float)(newhead.Y + Math.Sin(Math.PI/6 + neckangle) * mouth.length));
-            mouth.jawbot = new PointF((float)(newhead.X + Math.Cos(-Math.PI/6 + neckangle) * mouth.length), (float)(newhead.Y + Math.Sin(-Math.PI/6 + neckangle) * mouth.length));
-            
+            mouth.start_jawtop = new PointF((float)(newhead.X + Math.Cos(Math.PI/6 + neckangle) * mouth.jawlength),  (float)(newhead.Y + Math.Sin(Math.PI/6 + neckangle) * mouth.jawlength));
+            mouth.start_jawbot = new PointF((float)(newhead.X + Math.Cos(-Math.PI/6 + neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(-Math.PI/6 + neckangle) * mouth.jawlength));
             spine[0] = newhead;
+            mouth.Bite();
+            
             //Recursively go through all spine points, moving it towards the LAST one
             for (int i = 1; i < spine.Count(); ++i)
             {
@@ -237,9 +238,9 @@ namespace TerrainGenerator
             g.DrawLine(new Pen(Color.Black, 4), mouth.head, mouth.jawtop);
             g.DrawLine(new Pen(Color.Black, 4), mouth.head, mouth.jawbot);
             
-            g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.head.X - 5, mouth.head.Y - 5, 10, 10));
-            g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawtop.X - 5, mouth.jawtop.Y - 5, 10, 10));
-            g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawbot.X - 5, mouth.jawbot.Y - 5, 10, 10));
+            //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.head.X - 5, mouth.head.Y - 5, 10, 10));
+            //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawtop.X - 5, mouth.jawtop.Y - 5, 10, 10));
+            //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawbot.X - 5, mouth.jawbot.Y - 5, 10, 10));
         }
     }
 }
