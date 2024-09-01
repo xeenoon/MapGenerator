@@ -11,11 +11,13 @@ namespace TerrainGenerator
             public PointF jawbot;
             public PointF start_jawtop;
             public PointF start_jawbot;
+            public PointF jawmid;
             public int jawlength;
+            public static double jawangle = Math.PI/4;
             public Mouth(PointF head, int jawlength)
             {
                 this.jawlength = jawlength;
-                PointF jawmid = new PointF(head.X + jawlength, head.Y);
+                jawmid = new PointF(head.X + jawlength, head.Y);
                 this.head = head;
 
                 // Vector from head to jawmid
@@ -28,7 +30,7 @@ namespace TerrainGenerator
                 float angle = (float)Math.Atan2(hf.Y, hf.X);
 
                 // 30 degrees in radians (use radians directly)
-                float d_angle = (float)(Math.PI / 6.0);
+                float d_angle = (float)(jawangle);
 
                 // Calculate jawtop (-30 degrees from jawmid)
                 this.jawtop = new PointF(
@@ -50,13 +52,13 @@ namespace TerrainGenerator
             {
                 time++;
                 var jawtopangle = CalculateAngle(head, start_jawtop);
-                jawtopangle -= Math.Abs(Math.Sin(time / 70.0));
+                jawtopangle -= jawangle * Math.Abs(Math.Sin(time / 70.0));
                 jawtop = new PointF((float)(Math.Cos(jawtopangle) * jawlength + head.X), (float)(Math.Sin(jawtopangle) * jawlength + head.Y));
-
                 var jawbotangle = CalculateAngle(head, start_jawbot);
-                jawbotangle += Math.Abs(Math.Sin(time / 70.0));
+                jawbotangle += jawangle * Math.Abs(Math.Sin(time / 70.0));
 
                 jawbot = new PointF((float)(Math.Cos(jawbotangle) * jawlength + head.X), (float)(Math.Sin(jawbotangle) * jawlength + head.Y));
+                return;
             }
         }
     }

@@ -58,8 +58,10 @@ namespace TerrainGenerator
             var newhead = DragPoint(spine[0], neckangle, speed);
 
             mouth.head = newhead;
-            mouth.start_jawtop = new PointF((float)(newhead.X + Math.Cos(Math.PI / 6 + neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(Math.PI / 6 + neckangle) * mouth.jawlength));
-            mouth.start_jawbot = new PointF((float)(newhead.X + Math.Cos(-Math.PI / 6 + neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(-Math.PI / 6 + neckangle) * mouth.jawlength));
+            mouth.start_jawtop = new PointF((float)(newhead.X + Math.Cos(Mouth.jawangle + neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(Mouth.jawangle + neckangle) * mouth.jawlength));
+            mouth.start_jawbot = new PointF((float)(newhead.X + Math.Cos(-Mouth.jawangle + neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(-Mouth.jawangle + neckangle) * mouth.jawlength));
+            mouth.jawmid = new PointF((float)(newhead.X + Math.Cos(neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(neckangle) * mouth.jawlength));
+
             spine[0] = newhead;
             mouth.Bite();
 
@@ -162,7 +164,7 @@ namespace TerrainGenerator
             var angle = (float)CalculateAngle(spine[1], spine[0]);
             points = points.Rotate(angle);
 
-            g.DrawPolygon(new Pen(Color.Black), points);
+            //g.DrawPolygon(new Pen(Color.Black), points);
             for (int i = 1; i < spine.Count(); ++i)
             {
                 int width = sectionwidth;
@@ -234,12 +236,44 @@ namespace TerrainGenerator
                 PointF[] trianglePoints = { p1, p2, apex };
                 g.FillPolygon(new Pen(Color.Black).Brush, trianglePoints);
             }
-            g.DrawCurve(new Pen(Color.Black, 4), new PointF[] { mouth.head, CalculatePerpendicularMidpoint(mouth.head,mouth.jawtop, 5, true), mouth.jawtop });
-            g.DrawCurve(new Pen(Color.Black, 4), new PointF[] { mouth.head, CalculatePerpendicularMidpoint(mouth.head,mouth.jawbot, 5, false), mouth.jawbot });
+
+
+
+            //g.DrawPolygon(new Pen(Color.Black, 4), jawtop);
+            //g.DrawPolygon(new Pen(Color.Black, 4), jawbot);
+
+            //g.DrawLine(new Pen(Color.Green, 4), mouth.head, mouth.jawtop);
+            //g.DrawLine(new Pen(Color.Green, 4), mouth.head, mouth.jawbot);
 
             //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.head.X - 5, mouth.head.Y - 5, 10, 10));
             //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawtop.X - 5, mouth.jawtop.Y - 5, 10, 10));
             //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawbot.X - 5, mouth.jawbot.Y - 5, 10, 10));
+
+            var topmid = CalculatePerpendicularMidpoint(mouth.head, mouth.jawtop, 5, false);
+            var top_quarter = CalculatePerpendicularMidpoint(mouth.head, topmid, 8, false);
+            var top_third_quarter = CalculatePerpendicularMidpoint(topmid, mouth.jawtop, 8, false);
+
+            var topmid_outside = CalculatePerpendicularMidpoint(mouth.head, mouth.jawtop, 10, false);
+            var top_quarter_outside = CalculatePerpendicularMidpoint(mouth.head, topmid, 16, false);
+            var top_third_quarter_outside = CalculatePerpendicularMidpoint(topmid, mouth.jawtop, 16, false);
+
+            var botmid = CalculatePerpendicularMidpoint(mouth.head, mouth.jawbot, 5, true);
+            var bot_quarter = CalculatePerpendicularMidpoint(mouth.head, botmid, 8, true);
+            var bot_third_quarter = CalculatePerpendicularMidpoint(botmid, mouth.jawbot, 8, true);
+
+            var botmid_outside = CalculatePerpendicularMidpoint(mouth.head, mouth.jawbot, 10, true);
+            var bot_quarter_outside = CalculatePerpendicularMidpoint(mouth.head, botmid, 16, true);
+            var bot_third_quarter_outside = CalculatePerpendicularMidpoint(botmid, mouth.jawbot, 16, true);
+
+            PointF[] topjaw = new PointF[] { mouth.head, top_quarter, topmid, top_third_quarter, mouth.jawtop, top_third_quarter_outside, topmid_outside, top_quarter_outside };
+            g.DrawPolygon(new Pen(Color.Black), topjaw);
+
+            PointF[] botjaw = new PointF[] { mouth.head, bot_quarter, botmid, bot_third_quarter, mouth.jawbot, bot_third_quarter_outside, botmid_outside, bot_quarter_outside };
+            g.DrawPolygon(new Pen(Color.Black), botjaw);
+
+            PointF[] jawtop = new PointF[] { mouth.head, topmid, mouth.jawtop };
+            PointF[] jawbot = new PointF[] { mouth.head, botmid, mouth.jawtop };
+
         }
         public static PointF CalculatePerpendicularMidpoint(PointF point1, PointF point2, float offset, bool right)
         {

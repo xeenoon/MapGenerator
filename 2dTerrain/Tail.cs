@@ -35,8 +35,8 @@ namespace TerrainGenerator
                 for (int i = 1; i < length; ++i)
                 {
                     double angle = CalculateAngle(start_points[i - 1], start_points[i]) + Math.PI / 2;
-                    double modifier = Math.Sin(time / 15.0);
-                    const double swingamt = 2;
+                    double modifier = Math.Sin(time / 30.0);
+                    const double swingamt = 1;
 
                     // Calculate the swingsize based on the curve of a circle
                     double normalized_i = (double)i / length;
@@ -47,7 +47,7 @@ namespace TerrainGenerator
                     const double paralellswingcutoff = 0.1;
                     if (modifier > paralellswingcutoff)
                     {
-                        //Swing perpindicular
+                        //Swing perpindicular 
                         points[i] = new PointF(start_points[i].X + (float)(Math.Cos(angle) * swingsize),
                                                start_points[i].Y + (float)(Math.Sin(angle) * swingsize));
                         //Swing paralell
