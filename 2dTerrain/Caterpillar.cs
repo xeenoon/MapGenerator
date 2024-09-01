@@ -35,7 +35,7 @@ namespace TerrainGenerator
                 }
             }
             tail = new Tail(10, spine.Last(), sectionwidth, sectionheight);
-            mouth = new Mouth(head, (int)(sectionwidth*1.5f));
+            mouth = new Mouth(head, (int)(sectionwidth * 1.5f));
             legs = Leg.BuildLegs(spine.ToArray(), sectionwidth * 5);
         }
         int time = 0;
@@ -53,16 +53,16 @@ namespace TerrainGenerator
             {
                 //sinmodifier = Math.Sin(time/10.0) / 4;
             }
-            
+
             double neckangle = CalculateAngle(spine[1], spine[0]) + sinmodifier;
             var newhead = DragPoint(spine[0], neckangle, speed);
-            
-            mouth.head   = newhead;
-            mouth.start_jawtop = new PointF((float)(newhead.X + Math.Cos(Math.PI/6 + neckangle) * mouth.jawlength),  (float)(newhead.Y + Math.Sin(Math.PI/6 + neckangle) * mouth.jawlength));
-            mouth.start_jawbot = new PointF((float)(newhead.X + Math.Cos(-Math.PI/6 + neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(-Math.PI/6 + neckangle) * mouth.jawlength));
+
+            mouth.head = newhead;
+            mouth.start_jawtop = new PointF((float)(newhead.X + Math.Cos(Math.PI / 6 + neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(Math.PI / 6 + neckangle) * mouth.jawlength));
+            mouth.start_jawbot = new PointF((float)(newhead.X + Math.Cos(-Math.PI / 6 + neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(-Math.PI / 6 + neckangle) * mouth.jawlength));
             spine[0] = newhead;
             mouth.Bite();
-            
+
             //Recursively go through all spine points, moving it towards the LAST one
             for (int i = 1; i < spine.Count(); ++i)
             {
@@ -207,7 +207,7 @@ namespace TerrainGenerator
             var lastpoint = tail.points[tail.points.Count() - 1];
             float radius = 10;
 
-            g.FillEllipse(new Pen(Color.Black).Brush, new RectangleF(lastpoint.X - radius, lastpoint.Y - radius, radius*2, radius*2));
+            g.FillEllipse(new Pen(Color.Black).Brush, new RectangleF(lastpoint.X - radius, lastpoint.Y - radius, radius * 2, radius * 2));
 
             // Calculate and draw the 6 triangles
             int numTriangles = 6;
@@ -234,13 +234,39 @@ namespace TerrainGenerator
                 PointF[] trianglePoints = { p1, p2, apex };
                 g.FillPolygon(new Pen(Color.Black).Brush, trianglePoints);
             }
+            g.DrawCurve(new Pen(Color.Black, 4), new PointF[] { mouth.head, CalculatePerpendicularMidpoint(mouth.head,mouth.jawtop, 5, true), mouth.jawtop });
+            g.DrawCurve(new Pen(Color.Black, 4), new PointF[] { mouth.head, CalculatePerpendicularMidpoint(mouth.head,mouth.jawbot, 5, false), mouth.jawbot });
 
-            g.DrawLine(new Pen(Color.Black, 4), mouth.head, mouth.jawtop);
-            g.DrawLine(new Pen(Color.Black, 4), mouth.head, mouth.jawbot);
-            
             //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.head.X - 5, mouth.head.Y - 5, 10, 10));
             //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawtop.X - 5, mouth.jawtop.Y - 5, 10, 10));
             //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(mouth.jawbot.X - 5, mouth.jawbot.Y - 5, 10, 10));
+        }
+        public static PointF CalculatePerpendicularMidpoint(PointF point1, PointF point2, float offset, bool right)
+        {
+            // Calculate the midpoint between point1 and point2
+            var midpoint = new PointF(
+                (point1.X + point2.X) / 2,
+                (point1.Y + point2.Y) / 2
+            );
+
+            // Calculate the vector from point1 to point2
+            var vectorX = point2.X - point1.X;
+            var vectorY = point2.Y - point1.Y;
+
+            // Calculate the perpendicular vector
+            var perpX = right ? vectorY : -vectorY;
+            var perpY = right ? -vectorX : vectorX;
+
+            // Normalize the perpendicular vector
+            var length = Math.Sqrt(perpX * perpX + perpY * perpY);
+            perpX /= (float)length;
+            perpY /= (float)length;
+
+            // Move the midpoint along the perpendicular vector
+            midpoint.X += offset * perpX;
+            midpoint.Y += offset * perpY;
+
+            return midpoint;
         }
     }
 }
