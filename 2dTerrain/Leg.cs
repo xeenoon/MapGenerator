@@ -26,7 +26,7 @@ namespace TerrainGenerator
             public static List<Leg> BuildLegs(PointF[] spine, int length)
             {
                 List<Leg> legs = new List<Leg>();
-                const int legdst = 5;
+                const int legdst = 4;
                 for (int i = 1; i < spine.Length / legdst; ++i) //Start at one to not draw a leg on the head
                 {
                     PointF spineconnection = spine[i * legdst];

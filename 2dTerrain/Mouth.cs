@@ -48,10 +48,10 @@ namespace TerrainGenerator
                 start_jawtop = jawtop;
             }
             int time = 0;
-            public void Bite()
+            public void Bite(double speed)
             {
                 time++;
-                double sinvalue = Math.Sin(time/7.0);
+                double sinvalue = Math.Sin(speed * time / 70.0);
                 sinvalue *= sinvalue;
 
                 var jawtopangle = CalculateAngle(head, start_jawtop);

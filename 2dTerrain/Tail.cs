@@ -28,14 +28,14 @@ namespace TerrainGenerator
                 }
             }
             int time = 0;
-            public void Swing()
+            public void Swing(double speed)
             {
                 ++time;
                 points[0] = start_points[0];
                 for (int i = 1; i < length; ++i)
                 {
                     double angle = CalculateAngle(start_points[i - 1], start_points[i]) + Math.PI / 2;
-                    double modifier = Math.Sin(time / 30.0);
+                    double modifier = Math.Sin(time / (speed * 3));
                     const double swingamt = 1;
 
                     // Calculate the swingsize based on the curve of a circle

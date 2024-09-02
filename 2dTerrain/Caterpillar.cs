@@ -16,6 +16,7 @@ namespace TerrainGenerator
         private List<Leg> legs = new List<Leg>();
         public Tail tail;
         public Mouth mouth;
+        public const double speed = 100;
         public Caterpillar(int length, Point head)
         {
             if (length <= 2)
@@ -42,11 +43,8 @@ namespace TerrainGenerator
         public void MoveTowards(Point p)
         {
             ++time;
-            //Assume it will be called once a frame
-            const double speed = 10;
-
             //Rotate the head towards the mouse
-            const double rotationspeed = 0.05;
+            double rotationspeed = speed * 0.005;
             spine[0] = RotateTowards(spine[1], spine[0], p, rotationspeed);
 
             double neckangle = CalculateAngle(spine[1], spine[0]);
@@ -58,7 +56,7 @@ namespace TerrainGenerator
             mouth.jawmid = new PointF((float)(newhead.X + Math.Cos(neckangle) * mouth.jawlength), (float)(newhead.Y + Math.Sin(neckangle) * mouth.jawlength));
 
             spine[0] = newhead;
-            mouth.Bite();
+            mouth.Bite(speed);
 
             //Recursively go through all spine points, moving it towards the LAST one
             for (int i = 1; i < spine.Count(); ++i)
@@ -93,7 +91,7 @@ namespace TerrainGenerator
                         tail.start_points[j] = new PointF((float)(dragged.X - Math.Cos(angle_front) * tail.sectionwidth * j),
                                                           (float)(dragged.Y - Math.Sin(angle_front) * tail.sectionwidth * j));
                     }
-                    tail.Swing();
+                    tail.Swing(speed);
                 }
 
                 spine[i] = dragged;
@@ -109,7 +107,6 @@ namespace TerrainGenerator
             double angle = CalculateAngle(p0, p1);
             PointF dp = new PointF((float)(Math.Cos(angle) * speed), (float)(Math.Sin(angle) * speed));
             PointF result = new PointF(p0.X + dp.X, p0.Y + dp.Y);
-
 
             return result;
         }

@@ -35,7 +35,7 @@ namespace _2dTerrain
             updatetimer.Start();
         }
         Caterpillar caterpillar;
-        System.Timers.Timer updatetimer = new System.Timers.Timer(25);
+        System.Timers.Timer updatetimer = new System.Timers.Timer(50);
         bool updateruning = false;
         public void UpdateTick(object sender, ElapsedEventArgs e)
         {
