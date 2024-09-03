@@ -12,32 +12,68 @@ namespace TerrainGenerator
             public PointF[] toe_start = new PointF[3];
             public int length;
             public int toelength;
-            private Leg(PointF spineconnection, PointF kee, PointF foot, PointF[] toes, int length)
+            public Leg(PointF spineconnection, PointF kee, PointF foot, int length)
             {
                 this.spineconnection = spineconnection;
                 this.knee = kee;
                 this.foot = foot;
                 this.length = length;
                 toelength = length / 6;
-                this.toes = toes;
+                this.toes = new PointF[3];
 
                 startfoot = foot;
             }
+            public static Leg AddLeg(double angle, PointF spineconnection)
+            {
+
+                double xdirection = Math.Cos(angle);
+                double ydirection = Math.Sin(angle);
+                int leglength = sectionwidth * 5;
+
+                PointF knee = new PointF((float)(spineconnection.X + xdirection * leglength / 2.0),
+                (float)(spineconnection.Y + ydirection * leglength / 2.0));
+
+                PointF foot = new PointF((float)(spineconnection.X + xdirection * leglength),
+                (float)(spineconnection.Y + ydirection * leglength));
+
+                Leg result =  new Leg(spineconnection, knee, foot, leglength);
+                //Set the default values for the feet
+                var centre_toe = new PointF((float)Math.Cos(angle), (float)Math.Sin(angle)).UnitVector();
+                result.toe_start[0] = new PointF(centre_toe.X * result.toelength + foot.X, centre_toe.Y * result.toelength + foot.Y);
+
+                var left_toe = new PointF(
+                    (float)(centre_toe.X * Math.Cos(Math.PI / 6) - centre_toe.Y * Math.Sin(Math.PI / 6)),
+                    (float)(centre_toe.X * Math.Sin(Math.PI / 6) + centre_toe.Y * Math.Cos(Math.PI / 6))
+                );
+                result.toe_start[1] = new PointF(left_toe.X * result.toelength + foot.X, left_toe.Y * result.toelength + foot.Y);
+
+                // Rotate the vector by -30 degrees (counterclockwise)
+                var right_toe = new PointF(
+                    (float)(centre_toe.X * Math.Cos(-Math.PI / 6) - centre_toe.Y * Math.Sin(-Math.PI / 6)),
+                    (float)(centre_toe.X * Math.Sin(-Math.PI / 6) + centre_toe.Y * Math.Cos(-Math.PI / 6))
+                );
+                result.toe_start[2] = new PointF(right_toe.X * result.toelength + foot.X, right_toe.Y * result.toelength + foot.Y);
+
+                for (int i = 0; i < 3; ++i)
+                {
+                    result.toes[i] = result.toe_start[i]; //Holy shit this is inefficient
+                }
+                return result;
+            }
+            public const int LEGDST = 4;
             public static List<Leg> BuildLegs(PointF[] spine, int length)
             {
                 List<Leg> legs = new List<Leg>();
-                const int legdst = 4;
-                for (int i = 1; i < spine.Length / legdst; ++i) //Start at one to not draw a leg on the head
+                for (int i = 1; i < spine.Length / LEGDST; ++i) //Start at one to not draw a leg on the head
                 {
-                    PointF spineconnection = spine[i * legdst];
+                    PointF spineconnection = spine[i * LEGDST];
 
                     //Assume spine[] y's are all the same
                     for (int direction = -1; direction < 2; direction += 2)
                     {
                         PointF knee = new PointF(spineconnection.X, spineconnection.Y + direction * length / 2);
                         PointF foot = new PointF(spineconnection.X, spineconnection.Y + direction * length);
-                        PointF[] toes = new PointF[3] { new PointF(foot.X - length / 8, foot.Y + length / 8), new PointF(foot.X, foot.Y + length / 8), new PointF(foot.X + length / 8, foot.Y + length / 8) };
-                        legs.Add(new Leg(spineconnection, knee, foot, toes, length));
+                        legs.Add(new Leg(spineconnection, knee, foot, length));
                     }
                 }
                 return legs;

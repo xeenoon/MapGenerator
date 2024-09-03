@@ -29,17 +29,19 @@ namespace _2dTerrain
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
-            caterpillar = new Caterpillar(50, new Point(600,500));
+            caterpillar = new Caterpillar(50, new Point(600, 500));
             updatetimer.Elapsed += UpdateTick;
             updatetimer.AutoReset = false;
             updatetimer.Start();
         }
         Caterpillar caterpillar;
-        System.Timers.Timer updatetimer = new System.Timers.Timer(50);
+        System.Timers.Timer updatetimer = new System.Timers.Timer(25);
         bool updateruning = false;
+        int ticks = 0;
         public void UpdateTick(object sender, ElapsedEventArgs e)
         {
-            if(updateruning){return;}
+            ++ticks;
+            if (updateruning) { return; }
             updateruning = true;
             result = new Bitmap(Width, Height);
             Point cursorPosition = Cursor.Position;
@@ -48,6 +50,10 @@ namespace _2dTerrain
             Point clientPosition = this.PointToClient(cursorPosition);
 
             caterpillar.MoveTowards(clientPosition);
+            if (ticks % 10 == 0)
+            {
+                caterpillar.Grow(1);
+            }
             caterpillar.Draw(result);
             pictureBox.Invalidate();
             updateruning = false;
@@ -71,11 +77,11 @@ namespace _2dTerrain
                     {
                         drawcolor = Color.White;
                     }
-                    else if(squaretype == GridSquareType.Wall)
+                    else if (squaretype == GridSquareType.Wall)
                     {
                         drawcolor = Color.Black;
                     }
-                    else if(squaretype == GridSquareType.Marked)
+                    else if (squaretype == GridSquareType.Marked)
                     {
                         drawcolor = Color.Red;
                     }

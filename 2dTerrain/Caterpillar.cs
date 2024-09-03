@@ -9,14 +9,14 @@ namespace TerrainGenerator
     partial class Caterpillar
     {
         public List<PointF> spine = new List<PointF>();
-        public double[] olddistances;
+        public List<double> olddistances = new List<double>();
         public static int pointsperbump = 8;
         public static int sectionwidth = 20;
         public static int sectionheight = 50;
         private List<Leg> legs = new List<Leg>();
         public Tail tail;
         public Mouth mouth;
-        public const double speed = 100;
+        public const double speed = 10;
         public Caterpillar(int length, Point head)
         {
             if (length <= 2)
@@ -24,15 +24,14 @@ namespace TerrainGenerator
                 throw new Exception("Length must be over 3");
             }
             //Calculate the old distances
-            olddistances = new double[length]; //array is one longer than required to avoid weird math later on. 
-            //'i' index for distnace is the same as the tail of the dragged point
+            olddistances.Add(0); //Last point in snake is equidistant to itself
 
             for (int i = 0; i < length; ++i)
             {
                 spine.Add(new PointF(head.X - sectionwidth * i, head.Y));
                 if (i >= 1)
                 {
-                    olddistances[i] = spine[i].DistanceTo(spine[i - 1]);
+                    olddistances.Add(spine[i].DistanceTo(spine[i - 1]));
                 }
             }
             tail = new Tail(10, spine.Last(), sectionwidth, sectionheight);
@@ -71,10 +70,8 @@ namespace TerrainGenerator
                         var side = leg[j];
 
                         double angle_front = CalculateAngle(spine[i], spine[i - 1]);
-                        double angle_behind = CalculateAngle(spine[i + 1], spine[i]);
-                        double averageangle = angle_front;
 
-                        double perpindicular = averageangle + (j == 0 ? Math.PI / 2 : -Math.PI / 2); //If j is zero its the "left" if its one its on the "right"
+                        double perpindicular = angle_front + (j == 0 ? Math.PI / 2 : -Math.PI / 2); //If j is zero its the "left" if its one its on the "right"
 
                         side.startfoot = new PointF((float)(dragged.X + Math.Cos(perpindicular) * side.length), (float)(dragged.Y + Math.Sin(perpindicular) * side.length));
 
@@ -136,6 +133,37 @@ namespace TerrainGenerator
             }
             return new PointF((float)(Math.Cos(newangle) * p0.DistanceTo(p1)) + p0.X, (float)(Math.Sin(newangle) * p0.DistanceTo(p1) + p0.Y));
         }
+        public void Grow(int amount)
+        {
+            for (int i = 0; i < amount; ++i)
+            {
+                var lastangle = CalculateAngle(spine[spine.Count() - 2], spine[spine.Count() - 1]);
+                var lastdistance = sectionwidth;
+                spine.Add(new PointF((float)(spine.Last().X + Math.Cos(lastangle) * lastdistance), (float)(spine.Last().Y + Math.Sin(lastangle) * lastdistance)));
+                olddistances.Add(spine.Last().DistanceTo(spine[spine.Count() - 2]));
+
+                //Check if we have to add a leg
+                int lastlegidx = spine.IndexOf(legs.Last().spineconnection);
+                if (spine.Count() - lastlegidx > Leg.LEGDST) //Check if there is too much of a gap between the last leg and the last joint
+                {
+                    //Add a leg on either side
+                    PointF spineconnection = spine.Last();
+                    double angle = CalculateAngle(spine.Last(), spine[spine.Count() - 2]);
+                    PointF vector = new PointF(spine[spine.Count() - 2].X - spine[spine.Count() - 1].X,
+                                               spine[spine.Count() - 2].Y - spine[spine.Count() - 1].Y);
+
+                    PointF perp1 = new PointF(-vector.Y, vector.X);
+                    PointF perp2 = new PointF(-perp1.X, -perp1.Y); // Opposite direction
+                    double perp_angle1 = perp1.Angle();
+                    double perp_angle2 = perp2.Angle();
+                    legs.Add(Leg.AddLeg(perp_angle1, spineconnection));
+                    legs.Add(Leg.AddLeg(perp_angle2, spineconnection));
+                }
+            }
+        }
+
+
+
         public static double CalculateAngle(PointF p1, PointF p2)
         {
             double deltaY = p2.Y - p1.Y;
@@ -161,9 +189,10 @@ namespace TerrainGenerator
             for (int i = 0; i < detail; ++i)
             {
                 double percentagedistance = i / (double)detail;
-                double sinoffset = Math.Sin(Math.PI / 2 * percentagedistance);
+                double sinoffset = Math.Sin((Math.PI / 2) * percentagedistance);
 
                 // Calculate the new x and y positions using the angle
+                
                 float x = (float)(centre.X - Math.Abs((length / 2) * percentagedistance * Math.Cos(angle) + offsetX * sinoffset));
                 float y = (float)(centre.Y - Math.Abs((length / 2) * percentagedistance * Math.Sin(angle) + offsetY * sinoffset));
                 result.Add(new PointF(x, y));
@@ -189,7 +218,6 @@ namespace TerrainGenerator
 
                 // Create the reflected point
                 var reflectedPoint = new PointF((float)(centre.X + reflectedX), (float)(centre.Y + reflectedY));
-
                 result.Add(reflectedPoint);
             }
 
@@ -218,6 +246,7 @@ namespace TerrainGenerator
                 }
 
                 var p = spine[i];
+
                 float spinesize = 0.02f;
                 angle = (float)CalculateAngle(spine[i], spine[i - 1]);
                 points = CurvePolygon(p, sectionwidth, sectionheight, 20, angle + Math.PI / 2);
@@ -264,7 +293,7 @@ namespace TerrainGenerator
                     lastpoint.X + radius * (float)Math.Cos(triangle_angle + Math.PI / numTriangles),
                     lastpoint.Y + radius * (float)Math.Sin(triangle_angle + Math.PI / numTriangles));
 
-                // Calculate the point where the triangle's apex is (outside the circle)
+                // Calculate the point where the triangle's apex is outside the circle
                 PointF apex = new PointF(
                     lastpoint.X + 1.5f * radius * (float)Math.Cos(triangle_angle),
                     lastpoint.Y + 1.5f * radius * (float)Math.Sin(triangle_angle));

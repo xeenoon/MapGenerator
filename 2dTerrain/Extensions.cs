@@ -318,7 +318,10 @@ namespace TerrainGenerator
 
             return inside;
         }
-
+        public static float Angle(this PointF vector)
+        {
+            return (float)Math.Atan2(vector.Y, vector.X); // Returns angle in radians
+        }
         public static bool Intersects(this Point[] polygon1, Point[] polygon2) //This is genuinely the most inefficient function i have seen in my entire life
         {
             // Check if any vertex of polygon1 is inside polygon2
@@ -341,9 +344,9 @@ namespace TerrainGenerator
 
             return false;
         }
-    public static Point Add(this Point p1, Point p2)
-    {
-        return new Point(p1.X + p2.X, p1.Y + p2.Y);
-    }
+        public static Point Add(this Point p1, Point p2)
+        {
+            return new Point(p1.X + p2.X, p1.Y + p2.Y);
+        }
     }
 }
