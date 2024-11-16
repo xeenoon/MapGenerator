@@ -118,16 +118,16 @@ namespace _2dTerrain
         {
             result = new Bitmap(Width, Height);
             int width = 100;
-            int height = 100;
+            int height = 200;
             PointF centre = new PointF(500,500);
 
-            double start_angle = 0;
+            double start_angle = Math.PI/6;
             double end_angle = Math.PI/4;
 
             PointF start = centre.Add(new PointF((float)Math.Cos(start_angle) * width, (float)Math.Sin(start_angle) * height));
             PointF end = centre.Add(new PointF((float)Math.Cos(end_angle) * width, (float)Math.Sin(end_angle) * height));
 
-            CurvedBrick curvedBrick = new CurvedBrick(width/2, height/2, start, end, centre, 30);
+            CurvedBrick curvedBrick = new CurvedBrick(width/2, height/2, start, end, centre, 10);
             Graphics g = Graphics.FromImage(result);
             
             g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(centre.X - width, centre.Y - height, width*2, height*2));
