@@ -1,21 +1,22 @@
-public class Castle
+using System.Drawing.Drawing2D;
+
+namespace TerrainGenerator
 {
-    Rectangle bounds;
-    public Castle(Rectangle bounds)
+    public class Castle
     {
-        this.bounds = bounds;
+        Rectangle bounds;
+        public Castle(Rectangle bounds)
+        {
+            this.bounds = bounds;
+        }
+        public void Draw(Bitmap b)
+        {
+            Graphics g = Graphics.FromImage(b);
+            g.FillRectangle(new Pen(Color.Blue).Brush, new Rectangle(100, 100, 100, 100));
+        }
     }
-    public void Draw(Bitmap b)
+    public class Tower
     {
-        Graphics g = Graphics.FromImage(b);
-        g.FillRectangle(new Pen(Color.Blue).Brush, new Rectangle(100, 100, 100, 100));
+        public Rectangle bounds;
     }
-}
-public class Tower
-{
-    public Rectangle bounds;
-}
-public class Brick
-{
-    
 }
