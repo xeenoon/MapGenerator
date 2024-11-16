@@ -25,14 +25,14 @@ namespace _2dTerrain
             generateButton.Location = new Point(Width - 100, Height - 70);
             generateButton.Size = new Size(80, 30);
             generateButton.Text = "Generate";
-            generateButton.Click += GenerateMapGrid;
+            generateButton.Click += GenerateCastle;
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
-            caterpillar = new Caterpillar(50, new Point(600, 500));
-            updatetimer.Elapsed += UpdateTick;
-            updatetimer.AutoReset = false;
-            updatetimer.Start();
+            //caterpillar = new Caterpillar(50, new Point(600, 500));
+            //updatetimer.Elapsed += UpdateTick;
+            //updatetimer.AutoReset = false;
+            //updatetimer.Start();
         }
         Caterpillar caterpillar;
         System.Timers.Timer updatetimer = new System.Timers.Timer(25);
@@ -112,6 +112,13 @@ namespace _2dTerrain
             g.DrawPolygon(new Pen(Color.Black, 5), polygon.points);
             g.DrawPolygon(new Pen(Color.Black, 5), shape);
 
+            pictureBox.Invalidate();
+        }
+        public void GenerateCastle(object sender, EventArgs e)
+        {
+            result = new Bitmap(Width, Height);
+            Castle castle = new Castle(new Rectangle(0,0,Width, Height));
+            castle.Draw(result);
             pictureBox.Invalidate();
         }
         public unsafe void GeneratePuddle(object sender, EventArgs e)
