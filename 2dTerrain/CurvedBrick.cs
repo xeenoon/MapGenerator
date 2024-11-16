@@ -21,6 +21,14 @@ namespace TerrainGenerator
         public static float thikkness = 5;
 
         private PointF start;
+        public static Bitmap darkstone;
+        public static Bitmap lightstone;
+        public static void Setup()
+        {
+            string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            darkstone = (Bitmap)Image.FromFile(exePath + "\\images\\darkstone.jpg");
+            lightstone = (Bitmap)Image.FromFile(exePath + "\\images\\stone.png");
+        }
 
         public CurvedBrick(int ovalwidth, int ovalheight, PointF start, PointF end, PointF circlecentre, float width)
         {
@@ -151,13 +159,6 @@ namespace TerrainGenerator
             }
 
             return points;
-        }
-
-
-
-        private void DrawStraightLine(Graphics g, PointF start, PointF end)
-        {
-            g.DrawLine(Pens.Red, start, end);
         }
     }
 }

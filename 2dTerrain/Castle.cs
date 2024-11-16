@@ -15,8 +15,4 @@ namespace TerrainGenerator
             g.FillRectangle(new Pen(Color.Blue).Brush, new Rectangle(100, 100, 100, 100));
         }
     }
-    public class Tower
-    {
-        public Rectangle bounds;
-    }
 }

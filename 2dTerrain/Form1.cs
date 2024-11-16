@@ -29,6 +29,7 @@ namespace _2dTerrain
             Controls.Add(generateButton);
             Controls.Add(pictureBox);
             Rock.Setup();
+            CurvedBrick.Setup();
             //caterpillar = new Caterpillar(50, new Point(600, 500));
             //updatetimer.Elapsed += UpdateTick;
             //updatetimer.AutoReset = false;
@@ -119,24 +120,43 @@ namespace _2dTerrain
             result = new Bitmap(Width, Height);
             int width = 100;
             int height = 200;
-            PointF centre = new PointF(500,500);
+            PointF centre = new PointF(500, 500);
 
-            double start_angle = Math.PI/6;
-            double end_angle = Math.PI/4;
+            // Starting and ending angles for the first brick
+            double start_angle = Math.PI / 6;
+            double end_angle = Math.PI / 4;
 
-            PointF start = centre.Add(new PointF((float)Math.Cos(start_angle) * width, (float)Math.Sin(start_angle) * height));
-            PointF end = centre.Add(new PointF((float)Math.Cos(end_angle) * width, (float)Math.Sin(end_angle) * height));
+            // Angle increment between bricks
+            double angleIncrement = end_angle - start_angle;
 
-            CurvedBrick curvedBrick = new CurvedBrick(width, height, start, end, centre, 50);
+            // Graphics setup for drawing
             Graphics g = Graphics.FromImage(result);
-            
-            g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(centre.X - width, centre.Y - height, width*2, height*2));
+            g.Clear(Color.White); // Optional: clear background
+
+            // Radius of the small points for the bricks' start and end positions
             int radius = 2;
-            curvedBrick.Draw(result);
-            g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(start.X - radius, start.Y-radius, radius*2, radius*2));
-            g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(end.X - radius, end.Y-radius, radius*2, radius*2));
+
+            // Loop to draw bricks around the unit circle
+            for (double angle = start_angle; angle <= 2 * Math.PI + start_angle; angle += angleIncrement)
+            {
+                // Calculate the start and end positions based on the angle
+                PointF start = centre.Add(new PointF((float)Math.Cos(angle) * width, (float)Math.Sin(angle) * height));
+                PointF end = centre.Add(new PointF((float)Math.Cos(angle + angleIncrement) * width, (float)Math.Sin(angle + angleIncrement) * height));
+
+                // Create and draw the curved brick
+                CurvedBrick curvedBrick = new CurvedBrick(width, height, start, end, centre, 50);
+                curvedBrick.Draw(result);
+
+                // Optionally, draw small circles at the start and end of each brick
+                g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(start.X - radius, start.Y - radius, radius * 2, radius * 2));
+                g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(end.X - radius, end.Y - radius, radius * 2, radius * 2));
+            }
+
+            // Trigger the PictureBox to refresh and show the result
             pictureBox.Invalidate();
         }
+
+
         public unsafe void GeneratePuddle(object sender, EventArgs e)
         {
             result = new Bitmap(Width, Height);
