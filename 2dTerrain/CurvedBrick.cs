@@ -16,15 +16,18 @@ namespace TerrainGenerator
         private PointF brickstart_topleft;
         private PointF brickstart_bottomright;
         private PointF brickstart_topright;
-        private PointF circlecentre;
+        private PointF ovalcentre;
         public float width;
         public static float thikkness = 5;
 
-        public CurvedBrick(int xstretch, int ystretch, PointF start, PointF end, PointF circlecentre, float width)
+        private PointF start;
+
+        public CurvedBrick(int ovalwidth, int ovalheight, PointF start, PointF end, PointF circlecentre, float width)
         {
-            this.ovalwidth = xstretch;
-            this.ovalheight = ystretch;
-            this.circlecentre = circlecentre;
+            this.start = start;
+            this.ovalwidth = ovalwidth;
+            this.ovalheight = ovalheight;
+            this.ovalcentre = circlecentre;
 
             // Assume start and end are on the circle
             var radiusvector = start.Subtract(circlecentre).UnitVector();
@@ -34,29 +37,29 @@ namespace TerrainGenerator
             radiusvector = end.Subtract(circlecentre).UnitVector();
             bottomright = end.Subtract(radiusvector.Scale(width / 2f));
             topright = end.Add(radiusvector.Scale(width / 2f));
-            /*
-                        double startangle = Math.Atan2(start.Y - circlecentre.Y, start.X - circlecentre.X);
-                        double start_angleChange = startangle + CalculateAngleForDistance(start, circlecentre, thikkness / 2, ovalwidth - thikkness, ovalheight - thikkness, true); //Hack, check angle positions
-                        float magnitude = start.Subtract(circlecentre).Magnitude();
-                        PointF newstart = circlecentre.Add(new PointF((float)Math.Cos(start_angleChange) * magnitude, (float)Math.Sin(start_angleChange) * magnitude));
-                        radiusvector = newstart.Subtract(circlecentre).UnitVector();
-                        brickstart_bottomleft = newstart.Subtract(radiusvector.Scale((width) / 2 - thikkness));
 
-                        start_angleChange = startangle + CalculateAngleForDistance(start, circlecentre, thikkness / 2, ovalwidth + thikkness, ovalheight + thikkness, true); //Hack, check angle positions
-                        newstart = circlecentre.Add(new PointF((float)Math.Cos(start_angleChange) * magnitude, (float)Math.Sin(start_angleChange) * magnitude));
-                        brickstart_topleft = newstart.Add(radiusvector.Scale((width) / 2 - thikkness));
+            double startangle = Math.Atan2(start.Y - circlecentre.Y, start.X - circlecentre.X);
+            double start_angleChange = startangle + CalculateAngleForDistance(start, circlecentre, thikkness/2, ovalwidth - thikkness, ovalheight - thikkness, true); //Hack, check angle positions
+            float magnitude = start.Subtract(circlecentre).Magnitude();
+            PointF newstart = circlecentre.Add(new PointF((float)Math.Cos(start_angleChange) * magnitude, (float)Math.Sin(start_angleChange) * magnitude));
+            radiusvector = newstart.Subtract(circlecentre).UnitVector();
+            brickstart_bottomleft = newstart.Subtract(radiusvector.Scale((width) / 2 - thikkness));
 
-                        double endangle = Math.Atan2(end.Y - circlecentre.Y, end.X - circlecentre.X);
-                        double end_angleChange = endangle + CalculateAngleForDistance(end, circlecentre, thikkness / 2, ovalwidth - thikkness, ovalheight - thikkness, false); //Hack, check angle positions
-                        magnitude = end.Subtract(circlecentre).Magnitude();
-                        PointF newend = circlecentre.Add(new PointF((float)Math.Cos(end_angleChange) * magnitude, (float)Math.Sin(end_angleChange) * magnitude));
-                        radiusvector = newend.Subtract(circlecentre).UnitVector();
-                        brickstart_bottomright = newend.Subtract(radiusvector.Scale((width) / 2 - thikkness));
+            start_angleChange = startangle + CalculateAngleForDistance(start, circlecentre, thikkness/2, ovalwidth + thikkness, ovalheight + thikkness, true); //Hack, check angle positions
+            newstart = circlecentre.Add(new PointF((float)Math.Cos(start_angleChange) * magnitude, (float)Math.Sin(start_angleChange) * magnitude));
+            brickstart_topleft = newstart.Add(radiusvector.Scale((width) / 2 - thikkness));
 
-                        end_angleChange = endangle + CalculateAngleForDistance(end, circlecentre, thikkness / 2, ovalwidth + thikkness, ovalheight + thikkness, false); //Hack, check angle positions
-                        newend = circlecentre.Add(new PointF((float)Math.Cos(end_angleChange) * magnitude, (float)Math.Sin(end_angleChange) * magnitude));
-                        brickstart_topright = newend.Add(radiusvector.Scale((width) / 2 - thikkness));
-            */
+            double endangle = Math.Atan2(end.Y - circlecentre.Y, end.X - circlecentre.X);
+            double end_angleChange = endangle + CalculateAngleForDistance(end, circlecentre, thikkness/2, ovalwidth - thikkness, ovalheight - thikkness, false); //Hack, check angle positions
+            magnitude = end.Subtract(circlecentre).Magnitude();
+            PointF newend = circlecentre.Add(new PointF((float)Math.Cos(end_angleChange) * magnitude, (float)Math.Sin(end_angleChange) * magnitude));
+            radiusvector = newend.Subtract(circlecentre).UnitVector();
+            brickstart_bottomright = newend.Subtract(radiusvector.Scale((width) / 2 - thikkness));
+
+            end_angleChange = endangle + CalculateAngleForDistance(end, circlecentre, thikkness/2, ovalwidth + thikkness, ovalheight + thikkness, false); //Hack, check angle positions
+            newend = circlecentre.Add(new PointF((float)Math.Cos(end_angleChange) * magnitude, (float)Math.Sin(end_angleChange) * magnitude));
+            brickstart_topright = newend.Add(radiusvector.Scale((width) / 2 - thikkness));
+
             this.width = width;
         }
         public static double CalculateAngleForDistance(PointF start, PointF circleCentre, double distance, double width, double height, bool clockwise)
@@ -91,36 +94,35 @@ namespace TerrainGenerator
             {
                 // Draw curved edges
                 int radius = 5;
-                g.FillEllipse(new Pen(Color.LightBlue).Brush, topleft.X - radius, topleft.Y - radius, radius * 2, radius * 2);
-                g.FillEllipse(new Pen(Color.LightBlue).Brush, topright.X - radius, topright.Y - radius, radius * 2, radius * 2);
-                g.FillEllipse(new Pen(Color.LightBlue).Brush, bottomleft.X - radius, bottomleft.Y - radius, radius * 2, radius * 2);
-                g.FillEllipse(new Pen(Color.LightBlue).Brush, bottomright.X - radius, bottomright.Y - radius, radius * 2, radius * 2);
 
-                var top = EdgePoints(g, topleft, topright, (ovalwidth - width / 4) * 2, (ovalheight - width / 4) * 2);
-                var bottom = EdgePoints(g, bottomleft, bottomright, (ovalwidth + width / 4) * 2, (ovalheight + width / 4) * 2);
+                var top = EdgePoints(g, topleft, topright, ovalwidth + width / 2, ovalheight + width / 2);
+                var bottom = EdgePoints(g, bottomleft, bottomright, ovalwidth - width / 2, ovalheight - width / 2);
                 bottom.Reverse();
-                // g.FillPolygon(new Pen(Color.DarkGray).Brush, top.Concat(bottom).ToArray());
+                g.FillPolygon(new Pen(Color.DarkGray).Brush, top.Concat(bottom).ToArray());
 
-                foreach (PointF p in top.Concat(bottom))
-                {
-                    radius = 3;
-                    g.FillEllipse(new Pen(Color.Black).Brush, p.X - radius, p.Y - radius, radius * 2, radius * 2);
-                }
-                var bricktop = EdgePoints(g, brickstart_topleft, brickstart_topright, ovalwidth - width, ovalheight - width);
-                var brickbottom = EdgePoints(g, brickstart_bottomleft, brickstart_bottomright, ovalwidth + width, ovalheight + width);
+
+                var bricktop = EdgePoints(g, brickstart_topleft, brickstart_topright, ovalwidth + width/2 - thikkness, ovalheight + width/2 - thikkness);
+                var brickbottom = EdgePoints(g, brickstart_bottomleft, brickstart_bottomright, ovalwidth - width/2 + thikkness, ovalheight - width/2 + thikkness);
                 brickbottom.Reverse();
                 g.FillPolygon(new Pen(Color.LightGray).Brush, bricktop.Concat(brickbottom).ToArray());
+
+                foreach (PointF p in bricktop.Concat(brickbottom))
+                {
+                    radius = 3;
+                    //g.FillEllipse(new Pen(Color.Black).Brush, p.X - radius, p.Y - radius, radius * 2, radius * 2);
+                }
             }
         }
 
         private List<PointF> EdgePoints(Graphics g, PointF start, PointF end, float ovalwidth, float ovalheight)
         {
             List<PointF> points = new List<PointF>();
-            var magnitude = start.Subtract(circlecentre).Magnitude();
+            var magnitude = start.Subtract(ovalcentre).Magnitude();
 
             // Measure the angle difference
-            float startAngle = (float)Math.Atan2(start.Y - circlecentre.Y, start.X - circlecentre.X);
-            float endAngle = (float)Math.Atan2(end.Y - circlecentre.Y, end.X - circlecentre.X);
+            float startAngle = (float)Math.Atan2(start.Y - ovalcentre.Y, start.X - ovalcentre.X);
+            float endAngle = (float)Math.Atan2(end.Y - ovalcentre.Y, end.X - ovalcentre.X);
+
 
             // Ensure angles are ordered correctly
             if (startAngle > endAngle) endAngle += 2 * (float)Math.PI;
@@ -128,25 +130,22 @@ namespace TerrainGenerator
             const int segments = 5; // Number of segments
             float angleStep = (endAngle - startAngle) / (float)segments;
 
-
             for (int i = 0; i <= segments; i++)
             {
                 float angle = startAngle + i * angleStep;
-                if (angle > endAngle)
-                {
-                    //angle = endAngle;
-                }
 
-                // Calculate tan(theta)
-                float tanTheta = (float)Math.Tan(angle);
+                // Parametric equations for the ellipse
+                float a = ovalwidth; // Semi-major axis
+                float b = ovalheight; // Semi-minor axis
 
-                // Compute x using the derived equation
-                float numerator = ovalwidth * ovalheight;
-                float denominator = (float)Math.Sqrt(ovalheight * ovalheight + ovalwidth * ovalwidth * tanTheta * tanTheta);
-                float curveX = circlecentre.X + (numerator / denominator) * (Math.Cos(angle) > 0 ? 1 : -1);
+                // Correctly calculate the intersection point on the ellipse's edge
+                float curveX = ovalcentre.X + a * b * (float)Math.Cos(angle) /
+                               (float)Math.Sqrt((b * b * Math.Cos(angle) * Math.Cos(angle)) +
+                                                (a * a * Math.Sin(angle) * Math.Sin(angle)));
 
-                // Compute y from x and tan(theta)
-                float curveY = circlecentre.Y + curveX * tanTheta;
+                float curveY = ovalcentre.Y + a * b * (float)Math.Sin(angle) /
+                               (float)Math.Sqrt((b * b * Math.Cos(angle) * Math.Cos(angle)) +
+                                                (a * a * Math.Sin(angle) * Math.Sin(angle)));
 
                 points.Add(new PointF(curveX, curveY));
             }

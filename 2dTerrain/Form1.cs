@@ -127,7 +127,7 @@ namespace _2dTerrain
             PointF start = centre.Add(new PointF((float)Math.Cos(start_angle) * width, (float)Math.Sin(start_angle) * height));
             PointF end = centre.Add(new PointF((float)Math.Cos(end_angle) * width, (float)Math.Sin(end_angle) * height));
 
-            CurvedBrick curvedBrick = new CurvedBrick(width/2, height/2, start, end, centre, 10);
+            CurvedBrick curvedBrick = new CurvedBrick(width, height, start, end, centre, 50);
             Graphics g = Graphics.FromImage(result);
             
             g.FillEllipse(new Pen(Color.Red).Brush, new RectangleF(centre.X - width, centre.Y - height, width*2, height*2));
