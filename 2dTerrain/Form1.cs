@@ -146,10 +146,6 @@ namespace _2dTerrain
                 // Create and draw the curved brick
                 CurvedBrick curvedBrick = new CurvedBrick(width, height, start, end, centre, 50);
                 curvedBrick.Draw(result);
-
-                // Optionally, draw small circles at the start and end of each brick
-                g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(start.X - radius, start.Y - radius, radius * 2, radius * 2));
-                g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(end.X - radius, end.Y - radius, radius * 2, radius * 2));
             }
 
             // Trigger the PictureBox to refresh and show the result

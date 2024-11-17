@@ -2,6 +2,7 @@ namespace TerrainGenerator
 {
     using System;
     using System.Drawing;
+    using System.Drawing.Imaging;
 
     public class CurvedBrick
     {
@@ -27,7 +28,7 @@ namespace TerrainGenerator
         {
             string exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             darkstone = (Bitmap)Image.FromFile(exePath + "\\images\\darkstone.jpg");
-            lightstone = (Bitmap)Image.FromFile(exePath + "\\images\\stone.png");
+            lightstone = (Bitmap)Image.FromFile(exePath + "\\images\\smoothestone.png");
         }
 
         public CurvedBrick(int ovalwidth, int ovalheight, PointF start, PointF end, PointF circlecentre, float width)
@@ -47,24 +48,24 @@ namespace TerrainGenerator
             topright = end.Add(radiusvector.Scale(width / 2f));
 
             double startangle = Math.Atan2(start.Y - circlecentre.Y, start.X - circlecentre.X);
-            double start_angleChange = startangle + CalculateAngleForDistance(start, circlecentre, thikkness/2, ovalwidth - thikkness, ovalheight - thikkness, true); //Hack, check angle positions
+            double start_angleChange = startangle + CalculateAngleForDistance(start, circlecentre, thikkness / 2, ovalwidth - thikkness, ovalheight - thikkness, true); //Hack, check angle positions
             float magnitude = start.Subtract(circlecentre).Magnitude();
             PointF newstart = circlecentre.Add(new PointF((float)Math.Cos(start_angleChange) * magnitude, (float)Math.Sin(start_angleChange) * magnitude));
             radiusvector = newstart.Subtract(circlecentre).UnitVector();
             brickstart_bottomleft = newstart.Subtract(radiusvector.Scale((width) / 2 - thikkness));
 
-            start_angleChange = startangle + CalculateAngleForDistance(start, circlecentre, thikkness/2, ovalwidth + thikkness, ovalheight + thikkness, true); //Hack, check angle positions
+            start_angleChange = startangle + CalculateAngleForDistance(start, circlecentre, thikkness / 2, ovalwidth + thikkness, ovalheight + thikkness, true); //Hack, check angle positions
             newstart = circlecentre.Add(new PointF((float)Math.Cos(start_angleChange) * magnitude, (float)Math.Sin(start_angleChange) * magnitude));
             brickstart_topleft = newstart.Add(radiusvector.Scale((width) / 2 - thikkness));
 
             double endangle = Math.Atan2(end.Y - circlecentre.Y, end.X - circlecentre.X);
-            double end_angleChange = endangle + CalculateAngleForDistance(end, circlecentre, thikkness/2, ovalwidth - thikkness, ovalheight - thikkness, false); //Hack, check angle positions
+            double end_angleChange = endangle + CalculateAngleForDistance(end, circlecentre, thikkness / 2, ovalwidth - thikkness, ovalheight - thikkness, false); //Hack, check angle positions
             magnitude = end.Subtract(circlecentre).Magnitude();
             PointF newend = circlecentre.Add(new PointF((float)Math.Cos(end_angleChange) * magnitude, (float)Math.Sin(end_angleChange) * magnitude));
             radiusvector = newend.Subtract(circlecentre).UnitVector();
             brickstart_bottomright = newend.Subtract(radiusvector.Scale((width) / 2 - thikkness));
 
-            end_angleChange = endangle + CalculateAngleForDistance(end, circlecentre, thikkness/2, ovalwidth + thikkness, ovalheight + thikkness, false); //Hack, check angle positions
+            end_angleChange = endangle + CalculateAngleForDistance(end, circlecentre, thikkness / 2, ovalwidth + thikkness, ovalheight + thikkness, false); //Hack, check angle positions
             newend = circlecentre.Add(new PointF((float)Math.Cos(end_angleChange) * magnitude, (float)Math.Sin(end_angleChange) * magnitude));
             brickstart_topright = newend.Add(radiusvector.Scale((width) / 2 - thikkness));
 
@@ -106,19 +107,41 @@ namespace TerrainGenerator
                 var top = EdgePoints(g, topleft, topright, ovalwidth + width / 2, ovalheight + width / 2);
                 var bottom = EdgePoints(g, bottomleft, bottomright, ovalwidth - width / 2, ovalheight - width / 2);
                 bottom.Reverse();
-                g.FillPolygon(new Pen(Color.DarkGray).Brush, top.Concat(bottom).ToArray());
 
 
-                var bricktop = EdgePoints(g, brickstart_topleft, brickstart_topright, ovalwidth + width/2 - thikkness, ovalheight + width/2 - thikkness);
-                var brickbottom = EdgePoints(g, brickstart_bottomleft, brickstart_bottomright, ovalwidth - width/2 + thikkness, ovalheight - width/2 + thikkness);
+                var bricktop = EdgePoints(g, brickstart_topleft, brickstart_topright, ovalwidth + width / 2 - thikkness, ovalheight + width / 2 - thikkness);
+                var brickbottom = EdgePoints(g, brickstart_bottomleft, brickstart_bottomright, ovalwidth - width / 2 + thikkness, ovalheight - width / 2 + thikkness);
                 brickbottom.Reverse();
-                g.FillPolygon(new Pen(Color.LightGray).Brush, bricktop.Concat(brickbottom).ToArray());
+                // Assuming darkstone and lightstone are already defined as static Bitmaps
 
-                foreach (PointF p in bricktop.Concat(brickbottom))
+                // Set up blending parameters
+                g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
+                g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+
+                using (TextureBrush textureBrush = new TextureBrush(darkstone))
                 {
-                    radius = 3;
-                    //g.FillEllipse(new Pen(Color.Black).Brush, p.X - radius, p.Y - radius, radius * 2, radius * 2);
+                    // Set the alpha to make the darkstone texture slightly transparent
+                    textureBrush.RotateTransform(0);  // Rotate if needed
+
+                    // Fill the polygon using the darkstone texture (with slight transparency)
+                    g.FillPolygon(textureBrush, top.Concat(bottom).ToArray());
                 }
+
+                using (TextureBrush textureBrush = new TextureBrush(lightstone))
+                {
+                    // Set alpha for blending effect (adjust the alpha to achieve the desired blend)
+                    ColorMatrix colorMatrix = new ColorMatrix();
+                    colorMatrix.Matrix33 = 0.5f; // Set the alpha channel to 50% (adjust as needed)
+
+                    using (ImageAttributes imageAttributes = new ImageAttributes())
+                    {
+                        imageAttributes.SetColorMatrix(colorMatrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+
+                        // Apply the imageAttributes to control transparency and blending
+                        g.FillPolygon(textureBrush, bricktop.Concat(brickbottom).ToArray());
+                    }
+                }
+
             }
         }
 
