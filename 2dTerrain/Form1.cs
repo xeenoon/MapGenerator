@@ -118,35 +118,10 @@ namespace _2dTerrain
         public void GenerateCastle(object sender, EventArgs e)
         {
             result = new Bitmap(Width, Height);
-            int width = 100;
-            int height = 200;
-            PointF centre = new PointF(500, 500);
-
-            // Starting and ending angles for the first brick
-            double start_angle = Math.PI / 6;
-            double end_angle = Math.PI / 4;
-
-            // Angle increment between bricks
-            double angleIncrement = end_angle - start_angle;
-
-            // Graphics setup for drawing
-            Graphics g = Graphics.FromImage(result);
-            g.Clear(Color.White); // Optional: clear background
-
-            // Radius of the small points for the bricks' start and end positions
-            int radius = 2;
-
-            // Loop to draw bricks around the unit circle
-            for (double angle = start_angle; angle <= 2 * Math.PI + start_angle; angle += angleIncrement)
-            {
-                // Calculate the start and end positions based on the angle
-                PointF start = centre.Add(new PointF((float)Math.Cos(angle) * width, (float)Math.Sin(angle) * height));
-                PointF end = centre.Add(new PointF((float)Math.Cos(angle + angleIncrement) * width, (float)Math.Sin(angle + angleIncrement) * height));
-
-                // Create and draw the curved brick
-                CurvedBrick curvedBrick = new CurvedBrick(width, height, start, end, centre, 50);
-                curvedBrick.Draw(result);
-            }
+            Tower tower = new Tower(new Rectangle(100,100,200,200), 10);
+            Tower tower2 = new Tower(new Rectangle(500,100,150,200), 10);
+            tower.Draw(result);
+            tower2.Draw(result);
 
             // Trigger the PictureBox to refresh and show the result
             pictureBox.Invalidate();
