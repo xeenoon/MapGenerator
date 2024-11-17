@@ -14,6 +14,12 @@ namespace TerrainGenerator
         private PointF bottomright;
         private PointF topright;
 
+        private PointF rotated_bottomleft;
+        private PointF rotated_topleft;
+        private PointF rotated_bottomright;
+        private PointF rotated_topright;
+
+
         private PointF brickstart_bottomleft;
         private PointF brickstart_topleft;
         private PointF brickstart_bottomright;
@@ -23,6 +29,7 @@ namespace TerrainGenerator
 
         private PointF start;
         private PointF end;
+        private float rotationoffset;
         public static Bitmap darkstone;
         public static Bitmap lightstone;
         public static void Setup()
@@ -32,24 +39,52 @@ namespace TerrainGenerator
             lightstone = (Bitmap)Image.FromFile(exePath + "\\images\\smoothestone.png");
         }
 
-        public CurvedBrick(int ovalwidth, int ovalheight, PointF start, PointF end, PointF circlecentre, float width)
+        public CurvedBrick(int ovalwidth, int ovalheight, PointF start, PointF end, PointF circlecentre, float width, float rotationoffset)
         {
             this.start = start;
             this.end = end;
             this.ovalwidth = ovalwidth;
             this.ovalheight = ovalheight;
             this.ovalcentre = circlecentre;
+            this.rotationoffset = rotationoffset;
 
-            // Assume start and end are on the circle
-            var radiusvector = start.Subtract(circlecentre).UnitVector();
-            bottomleft = start.Subtract(radiusvector.Scale(width / 2f));
-            topleft = start.Add(radiusvector.Scale(width / 2f));
+            // Calculate the unit vectors from the circle center to the start and end points
+            var radiusVectorStart = start.Subtract(circlecentre).UnitVector();
+            var radiusVectorEnd = end.Subtract(circlecentre).UnitVector();
 
-            radiusvector = end.Subtract(circlecentre).UnitVector();
-            bottomright = end.Subtract(radiusvector.Scale(width / 2f));
-            topright = end.Add(radiusvector.Scale(width / 2f));
+            // Now apply the width and calculate the bottomleft, topleft, bottomright, and topright for the unrotated version
+            bottomleft = start.Subtract(radiusVectorStart.Scale(width / 2f));
+            topleft = start.Add(radiusVectorStart.Scale(width / 2f));
+
+            bottomright = end.Subtract(radiusVectorEnd.Scale(width / 2f));
+            topright = end.Add(radiusVectorEnd.Scale(width / 2f));
+
+            // Apply the rotation to each point around the circle center
+            rotated_bottomleft = RotatePoint(bottomleft, circlecentre, rotationoffset);
+            rotated_topleft = RotatePoint(topleft, circlecentre, rotationoffset);
+            rotated_bottomright = RotatePoint(bottomright, circlecentre, rotationoffset);
+            rotated_topright = RotatePoint(topright, circlecentre, rotationoffset);
+
             this.width = width;
         }
+
+        // Helper method to rotate a point around a given center by a specified angle
+        private PointF RotatePoint(PointF point, PointF center, float angle)
+        {
+            float cosAngle = (float)Math.Cos(angle);
+            float sinAngle = (float)Math.Sin(angle);
+
+            // Calculate the relative position of the point to the center
+            float dx = point.X - center.X;
+            float dy = point.Y - center.Y;
+
+            // Apply the rotation matrix
+            float rotatedX = center.X + (cosAngle * dx - sinAngle * dy);
+            float rotatedY = center.Y + (sinAngle * dx + cosAngle * dy);
+
+            return new PointF(rotatedX, rotatedY);
+        }
+
         public static double CalculateAngleForDistance(PointF start, PointF circleCentre, double distance, double width, double height, bool clockwise)
         {
             // Calculate the angle of the starting point relative to the ellipse's center
@@ -80,19 +115,35 @@ namespace TerrainGenerator
         {
             using (Graphics g = Graphics.FromImage(display))
             {
-                int radius = 5;
+                int radius = 2;
+                float diameter = radius * 2; // Calculate the diameter (2 * radius)
+
                 //Draw main brick area
+          //      g.FillEllipse(Brushes.Purple, topleft.X - radius, topleft.Y - radius, diameter, diameter);
+          //      g.FillEllipse(Brushes.Purple, topright.X - radius, topright.Y - radius, diameter, diameter);
+          //      g.FillEllipse(Brushes.Purple, bottomleft.X - radius, bottomleft.Y - radius, diameter, diameter);
+          //      g.FillEllipse(Brushes.Purple, bottomright.X - radius, bottomright.Y - radius, diameter, diameter);
+          //      g.FillEllipse(Brushes.Black, ovalcentre.X - radius*2, ovalcentre.Y - radius*2, diameter*2, diameter*2);
+
                 var top = EdgePoints(g, topleft, topright, ovalwidth + width / 2, ovalheight + width / 2);
                 var bottom = EdgePoints(g, bottomleft, bottomright, ovalwidth - width / 2, ovalheight - width / 2);
                 bottom.Reverse();
 
+                // Draw an ellipse at each specified point with the given radius
+           //     g.FillEllipse(Brushes.Green, rotated_topleft.X - radius, rotated_topleft.Y - radius, diameter, diameter);
+           //     g.FillEllipse(Brushes.Green, rotated_topright.X - radius, rotated_topright.Y - radius, diameter, diameter);
+           //     g.FillEllipse(Brushes.Green, rotated_bottomleft.X - radius, rotated_bottomleft.Y - radius, diameter, diameter);
+           //     g.FillEllipse(Brushes.Green, rotated_bottomright.X - radius, rotated_bottomright.Y - radius, diameter, diameter);
+                foreach (var point in top.Concat(bottom))
+                {
+                   // g.FillEllipse(Brushes.Orange, point.X - radius, point.Y - radius, diameter, diameter);
+                }
+                //return;
                 using (TextureBrush textureBrush = new TextureBrush(lightstone))
                 {
                     var scaleMatrix = new Matrix();
                     scaleMatrix.Scale(0.2f, 0.2f); // Apply 0.1x scaling
                     textureBrush.Transform = scaleMatrix;
-                    // Set the alpha to make the darkstone texture slightly transparent
-                    textureBrush.RotateTransform(0);  // Rotate if needed
 
                     // Fill the polygon using the darkstone texture (with slight transparency)
                     g.FillPolygon(textureBrush, top.Concat(bottom).ToArray());
@@ -129,20 +180,36 @@ namespace TerrainGenerator
 
                     //alpha should be 255 when dst = 0 and 0 when dst = thikkness
                     var alpha = (int)(125 * (1 - (dst / thikkness)));
-                    var bricktop = EdgePoints(g, brickstart_topleft, brickstart_topright, ovalwidth + width / 2 - dst*2, ovalheight + width / 2 - dst*2);
-                    var brickbottom = EdgePoints(g, brickstart_bottomleft, brickstart_bottomright, ovalwidth - width / 2 + dst*2, ovalheight - width / 2 + dst*2);
+                    var bricktop = EdgePoints(g, brickstart_topleft, brickstart_topright, ovalwidth + width / 2 - dst * 2, ovalheight + width / 2 - dst * 2);
+                    var brickbottom = EdgePoints(g, brickstart_bottomleft, brickstart_bottomright, ovalwidth - width / 2 + dst * 2, ovalheight - width / 2 + dst * 2);
                     brickbottom.Reverse();
 
+                    var rotated_brickstart_bottomleft = RotatePoint(brickstart_bottomleft, ovalcentre, rotationoffset);
+                    var rotated_brickstart_topleft = RotatePoint(brickstart_topleft, ovalcentre, rotationoffset);
+                    var rotated_brickstart_bottomright = RotatePoint(brickstart_bottomright, ovalcentre, rotationoffset);
+                    var rotated_brickstart_topright = RotatePoint(brickstart_topright, ovalcentre, rotationoffset);
+
+               //     g.FillEllipse(Brushes.Red, rotated_brickstart_bottomleft.X - radius, rotated_brickstart_bottomleft.Y - radius, diameter, diameter);
+               //     g.FillEllipse(Brushes.Red, rotated_brickstart_topleft.X - radius, rotated_brickstart_topleft.Y - radius, diameter, diameter);
+               //     g.FillEllipse(Brushes.Red, rotated_brickstart_bottomright.X - radius, rotated_brickstart_bottomright.Y - radius, diameter, diameter);
+               //     g.FillEllipse(Brushes.Red, rotated_brickstart_topright.X - radius, rotated_brickstart_topright.Y - radius, diameter, diameter);
+
+
                     tempgraphics.FillPolygon(new Pen(Color.FromArgb(alpha, 0, 0, 0)).Brush, bricktop.Concat(brickbottom).ToArray());
+
+                    foreach (var point in bricktop.Concat(brickbottom))
+                    {
+                     //   g.FillEllipse(Brushes.Orange, point.X - radius, point.Y - radius, diameter, diameter);
+                    }
                 }
-                g.DrawImage(temp, new Point(0,0));
+                g.DrawImage(temp, new Point(0, 0));
             }
         }
 
-        private List<PointF> EdgePoints(Graphics g, PointF start, PointF end, float ovalwidth, float ovalheight)
+        private List<PointF> EdgePoints(Graphics g, PointF start, PointF end, float ovalWidth, float ovalHeight)
         {
             List<PointF> points = new List<PointF>();
-            var magnitude = start.Subtract(ovalcentre).Magnitude();
+            // Convert rotation angle to radians
 
             // Measure the angle difference
             float startAngle = (float)Math.Atan2(start.Y - ovalcentre.Y, start.X - ovalcentre.X);
@@ -152,7 +219,7 @@ namespace TerrainGenerator
             // Ensure angles are ordered correctly
             if (startAngle > endAngle) endAngle += 2 * (float)Math.PI;
 
-            const int segments = 5; // Number of segments
+            const int segments = 25; // Number of segments
             float angleStep = (endAngle - startAngle) / (float)segments;
 
             for (int i = 0; i <= segments; i++)
@@ -160,22 +227,20 @@ namespace TerrainGenerator
                 float angle = startAngle + i * angleStep;
 
                 // Parametric equations for the ellipse
-                float a = ovalwidth; // Semi-major axis
-                float b = ovalheight; // Semi-minor axis
+                float a = ovalWidth;  // Semi-major axis
+                float b = ovalHeight; // Semi-minor axis
 
-                // Correctly calculate the intersection point on the ellipse's edge
-                float curveX = ovalcentre.X + a * b * (float)Math.Cos(angle) /
-                               (float)Math.Sqrt((b * b * Math.Cos(angle) * Math.Cos(angle)) +
-                                                (a * a * Math.Sin(angle) * Math.Sin(angle)));
-
-                float curveY = ovalcentre.Y + a * b * (float)Math.Sin(angle) /
-                               (float)Math.Sqrt((b * b * Math.Cos(angle) * Math.Cos(angle)) +
-                                                (a * a * Math.Sin(angle) * Math.Sin(angle)));
-
-                points.Add(new PointF(curveX, curveY));
+                float unrotatedX = a * b * (float)Math.Cos(angle) /
+                                   (float)Math.Sqrt((b * b * Math.Cos(angle) * Math.Cos(angle)) +
+                                                    (a * a * Math.Sin(angle) * Math.Sin(angle)));
+                float unrotatedY = a * b * (float)Math.Sin(angle) /
+                                   (float)Math.Sqrt((b * b * Math.Cos(angle) * Math.Cos(angle)) +
+                                                    (a * a * Math.Sin(angle) * Math.Sin(angle)));
+                points.Add(RotatePoint(new PointF(unrotatedX, unrotatedY).Add(ovalcentre), ovalcentre, rotationoffset));
             }
 
             return points;
         }
+
     }
 }

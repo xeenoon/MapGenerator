@@ -118,10 +118,13 @@ namespace _2dTerrain
         public void GenerateCastle(object sender, EventArgs e)
         {
             result = new Bitmap(Width, Height);
-            Tower tower = new Tower(new Rectangle(100,100,200,200), 10);
-            Tower tower2 = new Tower(new Rectangle(500,100,150,200), 10);
+            Tower tower = new Tower(new Rectangle(100,100,200,300), 10, 50);
+            Tower tower2 = new Tower(new Rectangle(500,100,150,200), 10, 70);
             tower.Draw(result);
             tower2.Draw(result);
+            
+            //Walkway walkway = new Walkway(new PointF(200,200), new PointF(400,400), 50, 10);
+            //walkway.Draw(result);
 
             // Trigger the PictureBox to refresh and show the result
             pictureBox.Invalidate();

@@ -322,6 +322,16 @@ namespace TerrainGenerator
         {
             return (float)Math.Atan2(vector.Y, vector.X); // Returns angle in radians
         }
+        public static float Angle(this PointF a, PointF b)
+        {
+            // Calculate the difference in x and y coordinates
+            float deltaX = b.X - a.X;
+            float deltaY = b.Y - a.Y;
+
+            // Use Math.Atan2 to get the angle in radians
+            return (float)Math.Atan2(deltaY, deltaX);
+        }
+
         public static bool Intersects(this Point[] polygon1, Point[] polygon2) //This is genuinely the most inefficient function i have seen in my entire life
         {
             // Check if any vertex of polygon1 is inside polygon2
@@ -345,5 +355,5 @@ namespace TerrainGenerator
             return false;
         }
     }
-    
+
 }
