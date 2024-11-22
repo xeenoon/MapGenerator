@@ -26,6 +26,7 @@ namespace TerrainGenerator
         private PointF brickstart_topright;
         private PointF ovalcentre;
         public float width;
+        public float arclen;
 
         private PointF start;
         private PointF end;
@@ -39,8 +40,9 @@ namespace TerrainGenerator
             lightstone = (Bitmap)Image.FromFile(exePath + "\\images\\smoothestone.png");
         }
 
-        public CurvedBrick(int ovalwidth, int ovalheight, PointF start, PointF end, PointF circlecentre, float width, float rotationoffset)
+        public CurvedBrick(int ovalwidth, int ovalheight, PointF start, PointF end, PointF circlecentre, float width, float rotationoffset, float arclen)
         {
+            this.arclen = arclen;
             this.start = start;
             this.end = end;
             this.ovalwidth = ovalwidth;
@@ -152,7 +154,8 @@ namespace TerrainGenerator
                 Bitmap temp = new Bitmap(display.Width, display.Height);
                 Graphics tempgraphics = Graphics.FromImage(temp);
                 tempgraphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                float thikkness = width / 10f;
+                float thikkness = (arclen > width ? width : arclen) / 10f; //Pick the shortest dimension
+                //TODO INDIVIDUAL SCALING FOR DIFF DIMENSIONS
 
                 for (float dst = 0; dst <= thikkness; ++dst) //Use float so /2 doesn't round
                 {
@@ -189,20 +192,21 @@ namespace TerrainGenerator
                     var rotated_brickstart_bottomright = RotatePoint(brickstart_bottomright, ovalcentre, rotationoffset);
                     var rotated_brickstart_topright = RotatePoint(brickstart_topright, ovalcentre, rotationoffset);
 
-               //     g.FillEllipse(Brushes.Red, rotated_brickstart_bottomleft.X - radius, rotated_brickstart_bottomleft.Y - radius, diameter, diameter);
-               //     g.FillEllipse(Brushes.Red, rotated_brickstart_topleft.X - radius, rotated_brickstart_topleft.Y - radius, diameter, diameter);
-               //     g.FillEllipse(Brushes.Red, rotated_brickstart_bottomright.X - radius, rotated_brickstart_bottomright.Y - radius, diameter, diameter);
-               //     g.FillEllipse(Brushes.Red, rotated_brickstart_topright.X - radius, rotated_brickstart_topright.Y - radius, diameter, diameter);
+                    //g.FillEllipse(Brushes.Red, rotated_brickstart_bottomleft.X - radius, rotated_brickstart_bottomleft.Y - radius, diameter, diameter);
+                    //g.FillEllipse(Brushes.Red, rotated_brickstart_topleft.X - radius, rotated_brickstart_topleft.Y - radius, diameter, diameter);
+                    //g.FillEllipse(Brushes.Red, rotated_brickstart_bottomright.X - radius, rotated_brickstart_bottomright.Y - radius, diameter, diameter);
+                    //g.FillEllipse(Brushes.Red, rotated_brickstart_topright.X - radius, rotated_brickstart_topright.Y - radius, diameter, diameter);
 
 
                     tempgraphics.FillPolygon(new Pen(Color.FromArgb(alpha, 0, 0, 0)).Brush, bricktop.Concat(brickbottom).ToArray());
 
                     foreach (var point in bricktop.Concat(brickbottom))
                     {
-                     //   g.FillEllipse(Brushes.Orange, point.X - radius, point.Y - radius, diameter, diameter);
+                    //    g.FillEllipse(Brushes.Orange, point.X - radius, point.Y - radius, diameter, diameter);
                     }
                 }
                 g.DrawImage(temp, new Point(0, 0));
+
             }
         }
 
@@ -217,7 +221,12 @@ namespace TerrainGenerator
 
 
             // Ensure angles are ordered correctly
-            if (startAngle > endAngle) endAngle += 2 * (float)Math.PI;
+            if (startAngle > endAngle) 
+            {
+                var temp = startAngle;
+                startAngle = endAngle;
+                endAngle = startAngle;
+            }
 
             const int segments = 25; // Number of segments
             float angleStep = (endAngle - startAngle) / (float)segments;

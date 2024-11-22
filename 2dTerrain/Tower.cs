@@ -81,7 +81,8 @@ namespace TerrainGenerator
                     end,
                     centre,
                     brickwidth * 2,
-                    rotationOffset
+                    rotationOffset,
+                    (float)start.DistanceTo(end)
                 );
                 curvedBrick.Draw(result);  // Draw the curved brick on the result bitmap
             }

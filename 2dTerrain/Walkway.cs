@@ -38,25 +38,49 @@ namespace TerrainGenerator
             float rotationOffset = angle;  // Or use another value for rotation
 
             // Calculate the angle increment for each segment
-            float angleIncrement = (float)(2 * Math.PI / segments);
-            DrawSide(result, centre, semi_major_axis, semi_minor_axis, rotationOffset, angleIncrement);
+            DrawSide(result, centre, semi_major_axis, semi_minor_axis, rotationOffset, segments);
 
             var adjustedcentre = centre.Subtract(end.Subtract(start).Perpendicular().UnitVector().Scale(walkwaywidth / 4));
             semi_major_axis += walkwaywidth * 2;
             semi_minor_axis += walkwaywidth * 2;
-            DrawSide(result, centre, semi_major_axis, semi_minor_axis, rotationOffset, angleIncrement);
+            DrawSide(result, adjustedcentre, semi_major_axis, semi_minor_axis, rotationOffset, segments);
 
         }
 
-        private void DrawSide(Bitmap result, PointF centre, float semi_major_axis, float semi_minor_axis, float rotationOffset, float angleIncrement)
+        private void DrawSide(Bitmap result, PointF centre, float semi_major_axis, float semi_minor_axis, float rotationOffset, int segments)
         {
-            // Draw the curved bricks along the rotated oval
-            for (double angle = 0; angle < Math.PI; angle += angleIncrement)
+            var ovalestimation = GetOvalPoints(semi_major_axis, semi_minor_axis);
+            double halflen = 0;
+            for (int i = 0; i < ovalestimation.Count(); ++i)
             {
-                // Calculate the start and end positions based on the angle
-                PointF start = centre.Add(new PointF((float)Math.Cos(angle) * semi_major_axis, (float)Math.Sin(angle) * semi_minor_axis));
-                PointF end = centre.Add(new PointF((float)Math.Cos(angle + angleIncrement) * semi_major_axis, (float)Math.Sin(angle + angleIncrement) * semi_minor_axis));
+                var a = ovalestimation[i];
+                var b = ovalestimation[i != ovalestimation.Count() - 1 ? i + 1 : 0];
+                halflen += a.DistanceTo(b);
+            }
+            halflen /= 2;
+            double expecteddistance = halflen / segments;
+            // Draw the curved bricks along the rotated oval
+            int lastdegreesidx = 0;
+            int nextdegreesidx = 0;
+            Graphics g = Graphics.FromImage(result);
+            int segmentsdone = 0;
+            do
+            {
+                double accumdst = 0;
+                for (int i = lastdegreesidx; i < 180; ++i)
+                {
+                    accumdst += ovalestimation[i].DistanceTo(ovalestimation[i != ovalestimation.Count() - 1 ? i + 1 : 0]); //Find distance between me and the next point
+                    nextdegreesidx = i;
 
+                    if (accumdst > expecteddistance) //Found the correct arclen
+                    {
+                        break;
+                    }
+                }
+
+                // Calculate the start and end positions based on the angle
+                PointF start = ovalestimation[lastdegreesidx].Add(centre);
+                PointF end = ovalestimation[nextdegreesidx].Add(centre);
                 // Create and draw the curved brick using the CurvedBrick constructor
                 CurvedBrick curvedBrick = new(
                     (int)semi_major_axis,
@@ -65,10 +89,31 @@ namespace TerrainGenerator
                     end,
                     centre,
                     brickwidth * 2,
-                    rotationOffset
+                    rotationOffset,
+                    (float)accumdst //Float required for drawing
                 );
                 curvedBrick.Draw(result);  // Draw the curved brick on the result bitmap
+                
+                lastdegreesidx = nextdegreesidx;
+                segmentsdone++;
+                //g.DrawEllipse(new Pen(Color.Red), new RectangleF(start.X - 5, start.Y - 5, 10, 10));
+                //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(end.X - 2, end.Y - 2, 4, 4));
+
+            } while (nextdegreesidx <= 180 && segmentsdone != segments);
+        }
+        public PointF[] GetOvalPoints(float semi_major_axis, float semi_minor_axis)
+        {
+            const int points = 360;
+            PointF[] ovalPoints = new PointF[points];
+            for (int i = 0; i < points; i++)
+            {
+                double theta = (2 * Math.PI / points) * i; // Angle in radians
+                float x = semi_major_axis * (float)Math.Cos(theta);
+                float y = semi_minor_axis * (float)Math.Sin(theta);
+                ovalPoints[i] = new PointF(x, y);
             }
+
+            return ovalPoints;
         }
     }
 }
