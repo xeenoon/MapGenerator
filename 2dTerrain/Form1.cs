@@ -123,7 +123,7 @@ namespace _2dTerrain
             //tower.Draw(result);
             //tower2.Draw(result);
             
-            Walkway walkway = new Walkway(new PointF(200,200), new PointF(1200,800), 100, 10, 50, 30);
+            Walkway walkway = new Walkway(new PointF(200,200), new PointF(1200,800), 100, 10, 50, 10);
             walkway.Draw(result);
 
             // Trigger the PictureBox to refresh and show the result

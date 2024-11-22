@@ -96,8 +96,8 @@ namespace TerrainGenerator
                 
                 lastdegreesidx = nextdegreesidx;
                 segmentsdone++;
-                //g.DrawEllipse(new Pen(Color.Red), new RectangleF(start.X - 5, start.Y - 5, 10, 10));
-                //g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(end.X - 2, end.Y - 2, 4, 4));
+                g.DrawEllipse(new Pen(Color.Red), new RectangleF(start.X - 5, start.Y - 5, 10, 10));
+                g.FillEllipse(new Pen(Color.Green).Brush, new RectangleF(end.X - 2, end.Y - 2, 4, 4));
 
             } while (nextdegreesidx <= 180 && segmentsdone != segments);
         }

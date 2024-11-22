@@ -89,29 +89,35 @@ namespace TerrainGenerator
 
         public static double CalculateAngleForDistance(PointF start, PointF circleCentre, double distance, double width, double height, bool clockwise)
         {
+            double a = width / 2.0;  // Semi-major axis
+            double b = height / 2.0; // Semi-minor axis
+
             // Calculate the angle of the starting point relative to the ellipse's center
-            float deltaX = start.X - circleCentre.X;
-            float deltaY = start.Y - circleCentre.Y;
-            double startAngle = Math.Atan2(deltaY * (width / height), deltaX); // Adjusted for ellipse scaling
+            double deltaX = start.X - circleCentre.X;
+            double deltaY = start.Y - circleCentre.Y;
+            double startAngle = Math.Atan2(deltaY * (a / b), deltaX); // Adjusted for ellipse scaling
 
-            // Calculate the local radius (distance from center to the ellipse edge) at the given angle
-            double radius = (width / 2) * (height / 2) /
-                            Math.Sqrt(
-                                Math.Pow((height / 2) * Math.Cos(startAngle), 2) +
-                                Math.Pow((width / 2) * Math.Sin(startAngle), 2)
-                            );
+            // Incremental angle search to find the angle change for the given distance
+            double angleChange = 0.0;
+            double currentArcLength = 0.0;
+            double step = 0.001; // Angle step size (radians), adjust for precision
 
-            // Calculate the angle change required to cover the specified distance
-            double angleChange = distance / radius; // Arc length formula
-
-            // Adjust the direction of the angle change based on the 'clockwise' parameter
-            if (!clockwise)
+            while (currentArcLength < distance)
             {
-                angleChange = -angleChange; // Reverse the direction for counterclockwise
+                angleChange += step;
+                double angle = startAngle + (clockwise ? angleChange : -angleChange);
+
+                // Calculate instantaneous radius at the current angle
+                double instantaneousRadius = a * b /
+                    Math.Sqrt(Math.Pow(b * Math.Cos(angle), 2) + Math.Pow(a * Math.Sin(angle), 2));
+
+                // Incremental arc length approximation
+                currentArcLength += instantaneousRadius * step;
             }
 
-            return angleChange;
+            return clockwise ? angleChange : -angleChange;
         }
+
 
         public void Draw(Bitmap display)
         {
@@ -121,24 +127,20 @@ namespace TerrainGenerator
                 float diameter = radius * 2; // Calculate the diameter (2 * radius)
 
                 //Draw main brick area
-          //      g.FillEllipse(Brushes.Purple, topleft.X - radius, topleft.Y - radius, diameter, diameter);
-          //      g.FillEllipse(Brushes.Purple, topright.X - radius, topright.Y - radius, diameter, diameter);
-          //      g.FillEllipse(Brushes.Purple, bottomleft.X - radius, bottomleft.Y - radius, diameter, diameter);
-          //      g.FillEllipse(Brushes.Purple, bottomright.X - radius, bottomright.Y - radius, diameter, diameter);
-          //      g.FillEllipse(Brushes.Black, ovalcentre.X - radius*2, ovalcentre.Y - radius*2, diameter*2, diameter*2);
+                //      g.FillEllipse(Brushes.Purple, topleft.X - radius, topleft.Y - radius, diameter, diameter);
+                //      g.FillEllipse(Brushes.Purple, topright.X - radius, topright.Y - radius, diameter, diameter);
+                //      g.FillEllipse(Brushes.Purple, bottomleft.X - radius, bottomleft.Y - radius, diameter, diameter);
+                //      g.FillEllipse(Brushes.Purple, bottomright.X - radius, bottomright.Y - radius, diameter, diameter);
+                //      g.FillEllipse(Brushes.Black, ovalcentre.X - radius*2, ovalcentre.Y - radius*2, diameter*2, diameter*2);
 
                 var top = EdgePoints(g, topleft, topright, ovalwidth + width / 2, ovalheight + width / 2);
                 var bottom = EdgePoints(g, bottomleft, bottomright, ovalwidth - width / 2, ovalheight - width / 2);
                 bottom.Reverse();
 
                 // Draw an ellipse at each specified point with the given radius
-           //     g.FillEllipse(Brushes.Green, rotated_topleft.X - radius, rotated_topleft.Y - radius, diameter, diameter);
-           //     g.FillEllipse(Brushes.Green, rotated_topright.X - radius, rotated_topright.Y - radius, diameter, diameter);
-           //     g.FillEllipse(Brushes.Green, rotated_bottomleft.X - radius, rotated_bottomleft.Y - radius, diameter, diameter);
-           //     g.FillEllipse(Brushes.Green, rotated_bottomright.X - radius, rotated_bottomright.Y - radius, diameter, diameter);
                 foreach (var point in top.Concat(bottom))
                 {
-                   // g.FillEllipse(Brushes.Orange, point.X - radius, point.Y - radius, diameter, diameter);
+                    // g.FillEllipse(Brushes.Orange, point.X - radius, point.Y - radius, diameter, diameter);
                 }
                 //return;
                 using (TextureBrush textureBrush = new TextureBrush(lightstone))
@@ -150,14 +152,21 @@ namespace TerrainGenerator
                     // Fill the polygon using the darkstone texture (with slight transparency)
                     g.FillPolygon(textureBrush, top.Concat(bottom).ToArray());
                 }
+
+                g.FillEllipse(Brushes.Green, rotated_topleft.X - radius, rotated_topleft.Y - radius, diameter, diameter);
+                g.FillEllipse(Brushes.Green, rotated_topright.X - radius, rotated_topright.Y - radius, diameter, diameter);
+                g.FillEllipse(Brushes.Green, rotated_bottomleft.X - radius, rotated_bottomleft.Y - radius, diameter, diameter);
+                g.FillEllipse(Brushes.Green, rotated_bottomright.X - radius, rotated_bottomright.Y - radius, diameter, diameter);
                 //Draw shadows
                 Bitmap temp = new Bitmap(display.Width, display.Height);
                 Graphics tempgraphics = Graphics.FromImage(temp);
                 tempgraphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                float thikkness = (arclen > width ? width : arclen) / 10f; //Pick the shortest dimension
-                //TODO INDIVIDUAL SCALING FOR DIFF DIMENSIONS
+                float perp_thickness = width / 10f; //Pick the shortest dimension
+                float horiz_thickness = arclen / 10f; //Pick the shortest dimension
 
-                for (float dst = 0; dst <= thikkness; ++dst) //Use float so /2 doesn't round
+                double thikkness = perp_thickness > horiz_thickness ? horiz_thickness : perp_thickness;
+
+                for (float dst = 0; dst <= thikkness; dst += 2) //Use float so /2 doesn't round
                 {
                     double startangle = Math.Atan2(start.Y - ovalcentre.Y, start.X - ovalcentre.X);
                     double start_angleChange = startangle + CalculateAngleForDistance(start, ovalcentre, dst / 2, ovalwidth - dst, ovalheight - dst, true); //Hack, check angle positions
@@ -168,6 +177,7 @@ namespace TerrainGenerator
 
                     start_angleChange = startangle + CalculateAngleForDistance(start, ovalcentre, dst / 2, ovalwidth + dst, ovalheight + dst, true); //Hack, check angle positions
                     newstart = ovalcentre.Add(new PointF((float)Math.Cos(start_angleChange) * magnitude, (float)Math.Sin(start_angleChange) * magnitude));
+                    radiusvector = newstart.Subtract(ovalcentre).UnitVector();
                     brickstart_topleft = newstart.Add(radiusvector.Scale((width) / 2 - dst));
 
                     double endangle = Math.Atan2(end.Y - ovalcentre.Y, end.X - ovalcentre.X);
@@ -179,6 +189,7 @@ namespace TerrainGenerator
 
                     end_angleChange = endangle + CalculateAngleForDistance(end, ovalcentre, dst / 2, ovalwidth + dst, ovalheight + dst, false); //Hack, check angle positions
                     newend = ovalcentre.Add(new PointF((float)Math.Cos(end_angleChange) * magnitude, (float)Math.Sin(end_angleChange) * magnitude));
+                    radiusvector = newend.Subtract(ovalcentre).UnitVector();
                     brickstart_topright = newend.Add(radiusvector.Scale((width) / 2 - dst));
 
                     //alpha should be 255 when dst = 0 and 0 when dst = thikkness
@@ -192,17 +203,17 @@ namespace TerrainGenerator
                     var rotated_brickstart_bottomright = RotatePoint(brickstart_bottomright, ovalcentre, rotationoffset);
                     var rotated_brickstart_topright = RotatePoint(brickstart_topright, ovalcentre, rotationoffset);
 
-                    //g.FillEllipse(Brushes.Red, rotated_brickstart_bottomleft.X - radius, rotated_brickstart_bottomleft.Y - radius, diameter, diameter);
-                    //g.FillEllipse(Brushes.Red, rotated_brickstart_topleft.X - radius, rotated_brickstart_topleft.Y - radius, diameter, diameter);
-                    //g.FillEllipse(Brushes.Red, rotated_brickstart_bottomright.X - radius, rotated_brickstart_bottomright.Y - radius, diameter, diameter);
-                    //g.FillEllipse(Brushes.Red, rotated_brickstart_topright.X - radius, rotated_brickstart_topright.Y - radius, diameter, diameter);
+                    g.FillEllipse(Brushes.Red, rotated_brickstart_bottomleft.X - radius, rotated_brickstart_bottomleft.Y - radius, diameter, diameter);
+                    g.FillEllipse(Brushes.Red, rotated_brickstart_topleft.X - radius, rotated_brickstart_topleft.Y - radius, diameter, diameter);
+                    g.FillEllipse(Brushes.Red, rotated_brickstart_bottomright.X - radius, rotated_brickstart_bottomright.Y - radius, diameter, diameter);
+                    g.FillEllipse(Brushes.Red, rotated_brickstart_topright.X - radius, rotated_brickstart_topright.Y - radius, diameter, diameter);
 
 
                     tempgraphics.FillPolygon(new Pen(Color.FromArgb(alpha, 0, 0, 0)).Brush, bricktop.Concat(brickbottom).ToArray());
-
+                    //break;
                     foreach (var point in bricktop.Concat(brickbottom))
                     {
-                    //    g.FillEllipse(Brushes.Orange, point.X - radius, point.Y - radius, diameter, diameter);
+                        //    g.FillEllipse(Brushes.Orange, point.X - radius, point.Y - radius, diameter, diameter);
                     }
                 }
                 g.DrawImage(temp, new Point(0, 0));
@@ -221,14 +232,14 @@ namespace TerrainGenerator
 
 
             // Ensure angles are ordered correctly
-            if (startAngle > endAngle) 
+            if (startAngle > endAngle)
             {
                 var temp = startAngle;
                 startAngle = endAngle;
                 endAngle = startAngle;
             }
 
-            const int segments = 25; // Number of segments
+            int segments = (int)(start.DistanceTo(end) / 2); // Number of segments
             float angleStep = (endAngle - startAngle) / (float)segments;
 
             for (int i = 0; i <= segments; i++)
